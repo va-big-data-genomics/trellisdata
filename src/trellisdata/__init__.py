@@ -1,4 +1,5 @@
 from .database_trigger import DatabaseTrigger
+from .messages import QueryRequestWriter
 from .messages import QueryResponse
 from .messages import QueryRequest
 from .messages import JobLauncherResponse
