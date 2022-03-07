@@ -49,3 +49,16 @@ def convert_timestamp_to_rfc_3339(timestamp):
         return ValueError
     return rfc3339_time
 
+def get_seconds_from_epoch(datetime_obj):
+    """Get datetime as total seconds from epoch.
+
+    Provides datetime in easily sortable format
+
+    Args:
+        datetime_obj (datetime): Datetime.
+    Returns:
+        (float): Seconds from epoch
+    """
+    from_epoch = datetime_obj - datetime(1970, 1, 1, tzinfo=pytz.UTC)
+    from_epoch_seconds = from_epoch.total_seconds()
+    return from_epoch_seconds
