@@ -11,7 +11,7 @@ class MessageWriter(object):
                  seed_id,
                  previous_event_id):
 
-        self.message_kind = "default"
+        self.message_kind = "unspecifiedWriter"
         self.sender = sender
         self.seed_id = seed_id
         self.previous_event_id = previous_event_id
@@ -38,7 +38,12 @@ class QueryRequestWriter(MessageWriter):
                  seed_id,
                  previous_event_id,
                  query_name,
-                 query_parameters):
+                 query_parameters,
+                 custom=False,
+                 query=None,
+                 write_transaction=False,
+                 publish_to=None,
+                 returns={}):
 
         super().__init__(
                          sender,
@@ -48,16 +53,32 @@ class QueryRequestWriter(MessageWriter):
         self.message_kind = "queryRequest"
         self.query_name = query_name
         self.query_parameters = query_parameters
+        self.custom = custom
+        self.query = query
+        self.write_transaction = write_transaction
+        self.publish_to = publish_to
+        self.returns = returns
 
     def format_json_message(self):
         message = super().format_json_header()
         body = {
                 "body": {
                     "queryName": self.query_name,
-                    "queryParameters": self.query_parameters
+                    "queryParameters": self.query_parameters,
+                    # Adding support for custom queries
+                    "custom": self.custom
                 }
         }
         message.update(body)
+
+        if self.custom:
+            custom_fields = {
+                "query": self.query,
+                "writeTransaction": self.write_transaction,
+                "publishTo": self.publish_to,
+                "returns": self.returns
+            }
+            message['body'].update(custom_fields)
         return message
 
 
@@ -247,6 +268,14 @@ class QueryRequestReader(MessageReader):
 
         self.query_name = self.body['queryName']
         self.query_parameters = self.body['queryParameters']
+        self.custom = bool(self.body['custom'])
+
+        # Should only be populated for custom queries
+        if self.custom:
+            self.query = self.body['query']
+            self.write_transaction = bool(self.body['writeTransaction'])
+            self.publish_to = self.body.get('publishTo')
+            self.returns = self.body.get('returns')
 
 
 class QueryResponseReader(MessageReader):
