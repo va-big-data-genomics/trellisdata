@@ -20,11 +20,15 @@ class DatabaseQuery(yaml.YAMLObject):
 				 self,
 				 name,
 				 query,
-				 parameters,
 				 write_transaction,
-				 active=True):
+				 publish_to,
+				 returns = None,
+				 parameters = {},
+				 active = True):
 		self.name = name
-		self.query = query,
-		self.parameters = parameters
+		self.query = query
 		self.write_transaction = write_transaction
+		self.publish_to = publish_to
+		self.returns = returns
+		self.parameters = parameters
 		self.active = active
