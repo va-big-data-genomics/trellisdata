@@ -63,7 +63,7 @@ class TriggerController:
 
     def _evaluate_node_triggers(self, query_response):
         node = query_response.nodes[0]
-        node_label = node['label']
+        node_label = node['labels']
 
         relevant_triggers = self.node_triggers[node_label]
 
