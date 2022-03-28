@@ -1,0 +1,9 @@
+--- !DatabaseQuery
+name: relateTbiToGvcf
+query: "MATCH (gvcf:Gvcf)<-[:GENERATED]-(step:CromwellStep)-[:GENERATED]->(tbi:Tbi) WHERE tbi.id = $tbi_id AND step.wdlCallAlias = 'mergevcfs' MERGE (gvcf)-[:HAS_INDEX {ontology: 'bioinformatics'}]->(tbi) RETURN gvcf AS node"
+parameters:
+  tbi_id: str
+write_transaction: true
+publish_to: test-function
+returns:
+  gvcf: node
