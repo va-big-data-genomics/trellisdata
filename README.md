@@ -7,4 +7,4 @@ $ python3 -m pip install ./trellisdata
 # To upload package to PyPi
 $ vi setup.cfg # bump the version number
 $ python3 -m build
-$ python3 -m twine upload
+$ python3 -m twine upload dist/*
