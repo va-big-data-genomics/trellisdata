@@ -152,7 +152,7 @@ def publish_to_pubsub_topic(publisher, project_id,  topic, message):
     topic_path = publisher.topic_path(project_id, topic)
     # https://stackoverflow.com/questions/11875770/how-to-overcome-datetime-datetime-not-json-serializable/36142844#36142844
     json_message = json.dumps(message, indent=4, sort_keys=True, default=str).encode('utf-8')
-    result = PUBLISHER.publish(topic_path, data=json_message).result()
+    result = publisher.publish(topic_path, data=json_message).result()
     return result
 
 def publish_str_to_topic(publisher, project_id, topic, str_data):
