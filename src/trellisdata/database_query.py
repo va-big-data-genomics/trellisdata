@@ -22,6 +22,7 @@ class DatabaseQuery(yaml.YAMLObject):
 				 query,
 				 write_transaction,
 				 publish_to,
+				 split_results = False,
 				 returns = None,
 				 parameters = {},
 				 active = True):
@@ -29,6 +30,7 @@ class DatabaseQuery(yaml.YAMLObject):
 		self.query = query
 		self.write_transaction = write_transaction
 		self.publish_to = publish_to
+		self.split_results = split_results
 		self.returns = returns
 		self.parameters = parameters
 		self.active = active
