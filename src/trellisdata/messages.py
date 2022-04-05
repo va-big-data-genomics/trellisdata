@@ -42,6 +42,7 @@ class QueryRequestWriter(MessageWriter):
                  custom=False,
                  query=None,
                  write_transaction=False,
+                 split_results=False,
                  publish_to=None,
                  returns={}):
 
@@ -75,6 +76,7 @@ class QueryRequestWriter(MessageWriter):
             custom_fields = {
                 "query": self.query,
                 "writeTransaction": self.write_transaction,
+                "splitResults": self.split_results,
                 "publishTo": self.publish_to,
                 "returns": self.returns
             }
@@ -274,6 +276,7 @@ class QueryRequestReader(MessageReader):
         if self.custom:
             self.query = self.body['query']
             self.write_transaction = bool(self.body['writeTransaction'])
+            self.split_results = bool(self.body['splitResults'])
             self.publish_to = self.body.get('publishTo')
             self.returns = self.body.get('returns')
 
