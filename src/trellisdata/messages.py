@@ -57,6 +57,7 @@ class QueryRequestWriter(MessageWriter):
         self.custom = custom
         self.query = query
         self.write_transaction = write_transaction
+        self.split_results = split_results
         self.publish_to = publish_to
         self.returns = returns
 
