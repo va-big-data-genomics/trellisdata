@@ -46,6 +46,15 @@ query: mergeBiologicalNodes
 
 pilot_triggers = """
 --- !DatabaseTrigger
+name: relateFastqToPersonalisSequencing
+type: node
+start: 
+    label: Fastq
+    properties:
+        sample: sample
+        uri: uri
+query: relateFastqToPersonalisSequencing
+--- !DatabaseTrigger
 name: LaunchGatk5Dollar
 type: relationship
 start:
@@ -166,7 +175,7 @@ class TestDatabaseTriggerController(TestCase):
 	def test_load_database_triggers_by_type(cls):
 		controller = trellis.TriggerController(pilot_triggers)
 
-		assert len(controller.node_triggers) == 1
+		assert len(controller.node_triggers) == 2
 		assert len(controller.relationship_triggers) == 3
 
 		assert len(controller.relationship_triggers['Gvcf']) == 1
@@ -210,3 +219,63 @@ class TestDatabaseTriggerController(TestCase):
 		trigger, parameters = triggers[0]
 		assert trigger.name == "RelateGvcfToGenome"
 		assert parameters == {'gvcf_id': 'gs://bucket/sample123.gvcf', 'sample': 'sample123'}
+
+	@classmethod
+	def test_evaluate_node_triggers(cls):
+
+		header = {'messageKind': 'queryResponse', 'previousEventId': '4393280078988728', 'seedId': 4393288756907900, 'sender': 'trellis-db-query'}
+		body = {
+			'nodes': [
+				{
+					'id': 288453, 
+					'labels': ['Fastq'], 
+					'properties': {
+						'basename': 'SAMPLE123_0_R1.fastq.gz', 
+						'sample': 'SAMPLE123',
+						'bucket': 'mvp-test-from-personalis', 
+						'crc32c': '7iQ68Q==', 
+						'matePair': 1, 
+						'metadata': "{'node_creation_test': 'April-5-2022-1', 'trellis-uuid': 'af7bb5ef-ef48-4447-8c0f-555f234b0929'}", 
+						'metageneration': '106', 
+						'size': 6188179435, 
+						'storageClass': 'REGIONAL', 
+						'trellisUuid': 'af7bb5ef-ef48-4447-8c0f-555f234b0929', 
+						'uri': 'gs://mvp-test-from-personalis/va_mvp_phase2/PLATE0/SAMPLE123/FASTQ/SAMPLE123_0_R1.fastq.gz'
+					}
+				}
+			], 
+			'queryName': 'mergeFastqNode', 
+			'relationships': [], 
+			'resultSummary': {
+				'counters': {'properties_set': 10}, 
+				'database': None, 
+				'notifications': None, 
+				'query_type': 'rw', 
+				'result_available_after': 15, 
+				'result_consumed_after': 0
+			}
+		}
+
+		message = {
+				 "header": header,
+				 "body": body
+		}
+		data_str = json.dumps(message)
+		data_utf8 = data_str.encode('utf-8')
+		event = {'data': base64.b64encode(data_utf8)}
+
+		read_response = trellis.QueryResponseReader(
+													mock_context,
+													event)
+		controller = trellis.TriggerController(pilot_triggers)
+		activated_triggers = controller.evaluate_trigger_conditions(read_response)
+
+		assert len(read_response.nodes) == 1
+		assert len(read_response.relationships) == 0
+
+		assert len(activated_triggers) == 1
+
+		trigger, parameters = activated_triggers[0]
+		assert trigger.name == "relateFastqToPersonalisSequencing"
+		assert parameters['sample'] == 'SAMPLE123'
+		assert parameters['uri'] == 'gs://mvp-test-from-personalis/va_mvp_phase2/PLATE0/SAMPLE123/FASTQ/SAMPLE123_0_R1.fastq.gz'
