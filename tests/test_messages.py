@@ -277,7 +277,8 @@ class TestQueryRequestReader(TestCase):
 					    }, 
 			    		'custom': True, 
 			    		'query': "MERGE (node:Fastq { uri: $uri, crc32c: $crc32c }) ON CREATE SET node.nodeCreated = timestamp(), node.nodeIteration = 'initial', node.bucket = $bucket, node.componentCount = $componentCount, node.contentType = $contentType, node.crc32c = $crc32c, node.customTime = $customTime, node.etag = $etag, node.eventBasedHold = $eventBasedHold, node.generation = $generation, node.id = $id, node.kind = $kind, node.mediaLink = $mediaLink, node.metadata = $metadata, node.metageneration = $metageneration, node.name = $name, node.selfLink = $selfLink, node.size = $size, node.storageClass = $storageClass, node.temporaryHold = $temporaryHold, node.timeCreated = $timeCreated, node.timeStorageClassUpdated = $timeStorageClassUpdated, node.updated = $updated, node.trellisUuid = $trellisUuid, node.path = $path, node.dirname = $dirname, node.basename = $basename, node.extension = $extension, node.filetype = $filetype, node.gitCommitHash = $gitCommitHash, node.gitVersionTag = $gitVersionTag, node.uri = $uri, node.timeCreatedEpoch = $timeCreatedEpoch, node.timeUpdatedEpoch = $timeUpdatedEpoch, node.timeCreatedIso = $timeCreatedIso, node.timeUpdatedIso = $timeUpdatedIso, node.plate = $plate, node.sample = $sample, node.matePair = $matePair, node.readGroup = $readGroup ON MATCH SET node.nodeIteration = 'merged', node.size = $size, node.timeUpdatedEpoch = $timeUpdatedEpoch, node.timeUpdatedIso = $timeUpdatedIso, node.timeStorageClassUpdated = $timeStorageClassUpdated, node.updated = $updated, node.id = $id, node.crc32c = $crc32c, node.generation = $generation, node.storageClass = $storageClass RETURN node", 
-			    		'writeTransaction': True, 
+			    		'writeTransaction': True,
+			    		'splitResults': False,
 			    		'publishTo': 'check-triggers', 
 			    		'returns': {'node': 'node'}
 			    }
