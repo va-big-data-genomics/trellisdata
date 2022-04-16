@@ -63,7 +63,11 @@ class TriggerController:
 
     def _evaluate_node_triggers(self, query_response):
         node = query_response.nodes[0]
-        node_label = node['labels']
+        node_labels = node['labels']
+        if len(node_labels) > 1:
+            raise ValueError
+        else:
+            node_label = node_labels[0]
 
         relevant_triggers = self.node_triggers[node_label]
 
@@ -71,11 +75,11 @@ class TriggerController:
         for trigger in relevant_triggers:
             node_properties = node['properties']
 
-            query_parameters = _get_node_trigger_parameters(
-                                                            trigger,
-                                                            node_properties)
+            query_parameters = self._get_node_trigger_parameters(
+                                    trigger,
+                                    node_properties)
             trigger_tuple = (trigger, query_parameters)
-            activated_triggers = append(trigger_tuple)
+            activated_triggers.append(trigger_tuple)
         return activated_triggers
 
     def _evaluate_relationship_triggers(self, query_response):
@@ -145,8 +149,11 @@ class TriggerController:
         node_parameters = trigger.start.get('properties')
 
         parameters = {}
-        if start_parameters:
-            parameters = self._get_parameter_values(start_parameters, start_properties, parameters)
+        if node_parameters:
+            parameters = self._get_parameter_values(
+                                        node_parameters,
+                                        node_properties,
+                                        parameters)
         return parameters
 
     def _get_parameter_values(self, parameter_mapping, properties, parameters):
