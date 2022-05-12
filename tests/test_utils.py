@@ -12,7 +12,7 @@ class TestTaxonomyParser(TestCase):
 	def test_read_computer_taxonomy_from_json(cls):
 
 		parser = trellis.utils.TaxonomyParser()
-		parser.read_from_json('flat-taxonomy-data.json')
+		parser.read_from_json('sample_inputs/flat-taxonomy-data.json')
 
 		node = parser.find_by_name('Firewall')
 		lineage = deque(node.path)
@@ -22,7 +22,7 @@ class TestTaxonomyParser(TestCase):
 	def test_read_label_taxonomy_from_json(cls):
 
 		parser = trellis.utils.TaxonomyParser()
-		parser.read_from_json('label-taxonomy.json')
+		parser.read_from_json('sample_inputs/label-taxonomy.json')
 
 		node = parser.find_by_name('Gvcf')
 		lineage = deque(node.path)
