@@ -19,18 +19,18 @@ class DatabaseQuery(yaml.YAMLObject):
 	def __init__(
 				 self,
 				 name,
-				 query,
+				 cypher,
 				 write_transaction,
 				 publish_to,
 				 split_results = False,
 				 returns = None,
-				 parameters = {},
+				 required_parameters = {},
 				 active = True):
 		self.name = name
-		self.query = query
+		self.cypher = cypher
 		self.write_transaction = write_transaction
 		self.publish_to = publish_to
 		self.split_results = split_results
 		self.returns = returns
-		self.parameters = parameters
+		self.required_parameters = required_parameters
 		self.active = active
