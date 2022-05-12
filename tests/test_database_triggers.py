@@ -21,7 +21,7 @@ mock_context.timestamp = '2019-07-15T22:09:03.761Z'
 gatk_trigger = """
 --- !DatabaseTrigger 
 name: LaunchGatk5Dollar
-type: relationship
+pattern: relationship
 start:
     label: Job
 end: 
@@ -36,7 +36,7 @@ query: launchGatk5Dollar
 bio_trigger = """
 --- !DatabaseTrigger
 name: MergeBiologicalNodes
-type: node
+pattern: node
 start: 
     label: PersonalisSequencing
     properties:
@@ -47,7 +47,7 @@ query: mergeBiologicalNodes
 pilot_triggers = """
 --- !DatabaseTrigger
 name: relateFastqToPersonalisSequencing
-type: node
+pattern: node
 start: 
     label: Fastq
     properties:
@@ -56,7 +56,7 @@ start:
 query: relateFastqToPersonalisSequencing
 --- !DatabaseTrigger
 name: LaunchGatk5Dollar
-type: relationship
+pattern: relationship
 start:
     label: Job
 end: 
@@ -68,7 +68,7 @@ relationship:
 query: launchGatk5Dollar
 --- !DatabaseTrigger
 name: LaunchFastqToUbam
-type: relationship
+pattern: relationship
 start: 
     label: PersonalisSequencing
 end: 
@@ -81,7 +81,7 @@ relationship:
 query: launchFastqToUbam
 --- !DatabaseTrigger
 name: RelateGenomeToFastq
-type: relationship
+pattern: relationship
 start: 
     label: PersonalisSequencing
 end: 
@@ -93,7 +93,7 @@ relationship:
 query: relateGenomeToFastq
 --- !DatabaseTrigger
 name: RelateGvcfToGenome
-type: relationship
+pattern: relationship
 start: 
     label: Gvcf
     properties:
@@ -106,7 +106,7 @@ relationship:
 query: relateGvcfToGenome
 --- !DatabaseTrigger
 name: MergeBiologicalNodes
-type: node
+pattern: node
 start: 
     label: PersonalisSequencing
     properties:
@@ -125,7 +125,7 @@ class TestDatabaseTrigger(TestCase):
 		trigger = yaml.load(gatk_trigger, Loader=yaml.FullLoader)
 
 		assert isinstance(trigger, trellis.DatabaseTrigger)
-		assert trigger.type == "relationship"
+		assert trigger.pattern == "relationship"
 		assert trigger.name == "LaunchGatk5Dollar"
 		assert trigger.start['label'] == "Job"
 		assert trigger.end['properties'] == {"sample": "sample"}
