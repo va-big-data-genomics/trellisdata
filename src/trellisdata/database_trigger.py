@@ -20,18 +20,18 @@ class TriggerController:
 
         # Separate triggers by type
         for trigger in triggers:
-            if trigger.type == 'node':
+            if trigger.pattern == 'node':
                 if trigger.start['label'] in self.node_triggers.keys():
                     self.node_triggers[trigger.start['label']].append(trigger)
                 else:
                     self.node_triggers[trigger.start['label']] = [trigger]
-            elif trigger.type == 'relationship':
+            elif trigger.pattern == 'relationship':
                 if trigger.start['label'] in self.relationship_triggers.keys():
                     self.relationship_triggers[trigger.start['label']].append(trigger)
                 else:
                     self.relationship_triggers[trigger.start['label']] = [trigger]
             else:
-                return ValueError(f"{trigger.type} is not a supported trigger type.")
+                return ValueError(f"{trigger.pattern} is not a supported trigger pattern.")
 
     def evaluate_trigger_conditions(self, query_response):
         """
@@ -40,17 +40,17 @@ class TriggerController:
             query_response (trellisdata.QueryResponseReader)
         """
 
-        trigger_type = self._determine_trigger_type(query_response)
+        result_pattern = self._determine_result_pattern(query_response)
 
-        if trigger_type == 'node':
+        if result_pattern == 'node':
             activated_triggers = self._evaluate_node_triggers(query_response)
-        elif trigger_type == 'relationship':
+        elif result_pattern == 'relationship':
             activated_triggers = self._evaluate_relationship_triggers(query_response)
         else:
             return ValueError()
         return activated_triggers
 
-    def _determine_trigger_type(self, query_response):
+    def _determine_result_pattern(self, query_response):
         len_nodes = len(query_response.nodes)
         len_relationships = len(query_response.relationships)
 
@@ -170,12 +170,12 @@ class DatabaseTrigger(yaml.YAMLObject):
 
     def __init__(
                  self, 
-                 trigger_type, 
+                 pattern, 
                  start, 
                  query, 
-                 end=None, 
-                 relationship=None):
-        self.trigger_type = trigger_type
+                 end, 
+                 relationship):
+        self.pattern = pattern
         self.start = start
         self.query = query
 
