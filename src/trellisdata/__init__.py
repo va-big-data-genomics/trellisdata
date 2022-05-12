@@ -12,4 +12,6 @@ from .messages import QueryResponseWriter
 from .messages import QueryResponseReader
 #from .messages import JobLauncherResponse
 
+from .operation_grapher import OperationGrapher
+
 from trellisdata import utils
