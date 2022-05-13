@@ -22,10 +22,10 @@ class DatabaseQuery(yaml.YAMLObject):
 				 cypher,
 				 write_transaction,
 				 publish_to,
-				 split_results = False,
-				 returns = None,
-				 required_parameters = {},
-				 active = True):
+				 split_results,
+				 returns,
+				 required_parameters,
+				 active):
 		self.name = name
 		self.cypher = cypher
 		self.write_transaction = write_transaction
@@ -34,3 +34,19 @@ class DatabaseQuery(yaml.YAMLObject):
 		self.returns = returns
 		self.required_parameters = required_parameters
 		self.active = active
+
+	def __eq__(self, other):
+		# https://stackoverflow.com/questions/1227121/compare-object-instances-for-equality-by-their-attributes
+		if not isinstance(other, DatabaseQuery):
+			# don't attempt to compare against unrelated types
+			return NotImplemented
+
+		return(
+			   self.name == other.name and
+			   self.cypher == other.cypher and
+			   self.write_transaction == other.write_transaction and
+			   self.publish_to == other.publish_to and
+			   self.split_results == other.split_results and
+			   self.returns == other.returns and
+			   self.required_parameters == other.required_parameters and
+			   self.active == other.active)
