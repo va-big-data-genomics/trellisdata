@@ -1,7 +1,7 @@
 --- !DatabaseQuery
 name: relateGenomeToFastq
 query: "MATCH (fastq:Fastq)<-[]-(:PersonalisSequencing)<-[]-(s:Sample)<-[]-(:Person)-[]->(genome:Genome) WHERE s.sample = $sample AND NOT (g)-[:HAS_SEQUENCING_READS]->(f) MERGE (genome)-[rel:HAS_SEQUENCING_READS]->(fastq) RETURN genome, rel, fastq" 
-parameters:
+required_parameters:
   sample: str
 write_transaction: true
 split_results: false
@@ -18,7 +18,7 @@ returns:
 --- !DatabaseQuery
 name: mergeBiologicalNodes
 query: "MATCH (s:PersonalisSequencing) WHERE s.sample = $sample MERGE (s)<-[:WAS_USED_BY {ontology: 'provenance'}]-(:Sample {sample: s.sample})<-[:GENERATED {ontology:'provenance'}]-(person:Person {sample: s.sample})-[has:HAS_BIOLOGICAL_OME {ontology:'bioinformatics'}]->(genome:Genome {sample: s.sample}) RETURN person, has, genome"
-parameters:
+required_parameters:
   sample: str
 write_transaction: true
 split_results: false
@@ -35,7 +35,7 @@ returns:
 --- !DatabaseQuery
 name: relateFastqToPersonalisSequencing
 query: "MATCH (seq:PersonalisSequencing), (fastq:Fastq) WHERE fastq.uri=$uri AND seq.sample=fastq.sample MERGE (seq)-[rel:GENERATED]->(fastq) RETURN seq, rel, fastq"
-parameters:
+required_parameters:
   sample: str
   uri: str
 write_transaction: true
