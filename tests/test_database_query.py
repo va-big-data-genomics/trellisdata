@@ -207,39 +207,48 @@ class TestDatabaseQuery(TestCase):
 	def test_append_queries_to_file(cls):
 		# Document containing multiple queries to append
 		new_queries = yaml.load_all(tbi_queries, Loader=yaml.FullLoader)
-		output_doc = "sample_inputs/pilot-write-db-query.yaml"
-
-		# Write a single query to the doc
-		#query = yaml.load(tbi_query, Loader=yaml.FullLoader)
-		#with open(output_doc, "w") as file_handle:
-		#	yaml.dump(query, file_handle)
+		stored_query = yaml.load_all(gvcf_query_doc, Loader=yaml.FullLoader)
 		
-		# Read multiple queries to be written to output
-		#with open(query_doc, "r") as file_handle:
-		#	new_queries = list(yaml.load_all(file_handle, Loader=yaml.FullLoader))
+		# Store intial query to file
+		stored_queries_doc = "sample_inputs/pilot-write-db-query.yaml"
+		with open(stored_queries_doc, 'w') as file_handle:
+			# Need to add the '---' delimiter at the beginning of new sets of
+			# YAML documents because pyyaml only adds them between documents.
+			# If you try to do dump one set of documents and then another,
+			# the first document in the second set will not have a delimiter
+			# and will be incorrectly formatted. The reason I am doing multiple
+			# dumps is because I want to be able to append documents to my
+			# YAML file without reading all the documents into a list 
+			# (i.e. list(yaml.load_all(doc)) because I don't know how big the 
+			# list will be and serverless functions have limited memory.
 
-		# Read the existing queries in the output doc
-		with open(output_doc, "r") as file_handle:
-			queries = list(yaml.load_all(file_handle, Loader=yaml.FullLoader))
+			file_handle.write('--- ') # YAML document delimiter
+			yaml.dump_all(stored_query, file_handle)
+
+		# Read the stored query from file
+		with open(stored_queries_doc, "r") as file_handle:
+			stored_queries = yaml.load_all(file_handle, Loader=yaml.FullLoader)
 			# Create a list of query names
+			query_names = [query.name for query in stored_queries]
 		
-			query_names = [query.name for query in queries]
+			# If a new query has not been stored add it to a list of queries to write
+			write_queries = []
 			for query in new_queries:
 				if not query.name in query_names:
-					queries.append(query)
+					write_queries.append(query)
 
-		assert len(queries) == 3
+		assert len(write_queries) == 1
 
 		# Write appended list of queries to output doc
-		with open(output_doc, "w") as file_handle:
-			yaml.dump_all(queries, file_handle)
+		with open(stored_queries_doc, "a") as file_handle:
+			file_handle.write('--- ') # YAML document delimiter
+			yaml.dump_all(write_queries, file_handle)
 
 		# Read the appended queries from the output doc
-		with open(output_doc, "r") as file_handle:
+		with open(stored_queries_doc, "r") as file_handle:
 			read_queries = list(yaml.load_all(file_handle, Loader=yaml.FullLoader))
 
-		assert len(read_queries) == 3
-		#pdb.set_trace()
+		assert len(read_queries) == 2
 
 		for query in read_queries:
 			assert isinstance(query, DatabaseQuery) == True
@@ -258,3 +267,51 @@ class TestDatabaseQuery(TestCase):
 		
 		assert relate_gvcf == gvcf_query
 		assert relate_gvcf != relate_fastq
+
+	@classmethod
+	def test_multiple_query_dumps_to_file(cls):
+		# What I want is to aggregate a dump queries into a file
+		# without ever loading them all into a list.
+
+		# Try to do a:
+		# yaml.dump_all(queries, file_handle)
+		# yaml.dump(query, file_handle)	
+
+		stored_queries = yaml.load_all(tbi_queries, Loader=yaml.FullLoader)
+		new_query = yaml.load(tbi_query, Loader=yaml.FullLoader)
+
+		output_doc = "sample_outputs/multiple-query-dumps.yaml"
+
+		with open(output_doc, "w") as file_handle:
+			file_handle.write('--- ')
+			yaml.dump_all(stored_queries, file_handle)
+			file_handle.write('--- ')
+			yaml.dump(new_query, file_handle)
+
+		with open(output_doc, "r") as file_handle:
+			read_queries = list(yaml.load_all(file_handle))
+
+		assert len(read_queries) == 3
+
+	@classmethod
+	def test_dump_queries_to_string_to_file(cls):
+		stored_queries = yaml.load_all(tbi_queries, Loader=yaml.FullLoader)
+		new_query = yaml.load(tbi_query, Loader=yaml.FullLoader)
+
+		out_string = "--- "
+		out_string += yaml.dump_all(stored_queries)
+		out_string += "--- "
+		out_string += yaml.dump(new_query)
+
+		queries = yaml.load_all(out_string, Loader=yaml.FullLoader)
+		pdb.set_trace()
+
+		output_doc = "sample_outputs/dump-queries-to-string-to-file.yaml"
+		with open(output_doc, 'w') as file_handle:
+			file_handle.write(out_string)
+
+		with open(output_doc, 'r') as file_handle:
+			queries = list(yaml.load_all(file_handle, Loader=yaml.FullLoader))
+
+		for query in queries:
+			assert isinstance(query, DatabaseQuery)
