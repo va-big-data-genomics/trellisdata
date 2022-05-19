@@ -1,4 +1,5 @@
 import yaml
+#import ruamel.yaml
 
 class DatabaseQuery(yaml.YAMLObject):
 	"""A parameterized Neo4j query.
@@ -12,6 +13,11 @@ class DatabaseQuery(yaml.YAMLObject):
 		write_transaction (bool): Indicates whether this is a read or write transaction.
 		active (bool): Use to activate/deactivate the query.
 	"""
+
+	# Note: I also looked into ruamel for YAML handling (https://yaml.readthedocs.io/en/latest/)
+	#    * safer loading of Python classes
+	#    * better handling of read/write cycles
+	# But, it had poor documentation and I got pyyaml to work
 
 	# Create objects from YAML: https://pyyaml.org/wiki/PyYAMLDocumentation
 	yaml_tag = u'!DatabaseQuery'
