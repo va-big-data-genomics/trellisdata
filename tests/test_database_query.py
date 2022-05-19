@@ -304,7 +304,7 @@ class TestDatabaseQuery(TestCase):
 		out_string += yaml.dump(new_query)
 
 		queries = yaml.load_all(out_string, Loader=yaml.FullLoader)
-		pdb.set_trace()
+		#pdb.set_trace()
 
 		output_doc = "sample_outputs/dump-queries-to-string-to-file.yaml"
 		with open(output_doc, 'w') as file_handle:

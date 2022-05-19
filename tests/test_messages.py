@@ -63,10 +63,10 @@ class TestQueryRequestWriter(TestCase):
 		assert message['body']['queryParameters'] == cls.query_parameters
 
 	@classmethod
-	def test_write_custom_query_request(cls):
+	def test_create_custom_query_request(cls):
 
 		query_name = "mergeFastqNode"
-		query = "MERGE (node:Fastq { uri: $uri, crc32c: $crc32c }) ON CREATE SET node.nodeCreated = timestamp(), node.nodeIteration = 'initial', node.bucket = $bucket, node.componentCount = $componentCount, node.contentType = $contentType, node.crc32c = $crc32c, node.customTime = $customTime, node.etag = $etag, node.eventBasedHold = $eventBasedHold, node.generation = $generation, node.id = $id, node.kind = $kind, node.mediaLink = $mediaLink, node.metadata = $metadata, node.metageneration = $metageneration, node.name = $name, node.selfLink = $selfLink, node.size = $size, node.storageClass = $storageClass, node.temporaryHold = $temporaryHold, node.timeCreated = $timeCreated, node.timeStorageClassUpdated = $timeStorageClassUpdated, node.updated = $updated, node.trellisUuid = $trellisUuid, node.path = $path, node.dirname = $dirname, node.basename = $basename, node.extension = $extension, node.filetype = $filetype, node.gitCommitHash = $gitCommitHash, node.gitVersionTag = $gitVersionTag, node.uri = $uri, node.timeCreatedEpoch = $timeCreatedEpoch, node.timeUpdatedEpoch = $timeUpdatedEpoch, node.timeCreatedIso = $timeCreatedIso, node.timeUpdatedIso = $timeUpdatedIso, node.plate = $plate, node.sample = $sample, node.matePair = $matePair, node.readGroup = $readGroup ON MATCH SET node.nodeIteration = 'merged', node.size = $size, node.timeUpdatedEpoch = $timeUpdatedEpoch, node.timeUpdatedIso = $timeUpdatedIso, node.timeStorageClassUpdated = $timeStorageClassUpdated, node.updated = $updated, node.id = $id, node.crc32c = $crc32c, node.generation = $generation, node.storageClass = $storageClass RETURN node"
+		cypher = "MERGE (node:Fastq { uri: $uri, crc32c: $crc32c }) ON CREATE SET node.nodeCreated = timestamp(), node.nodeIteration = 'initial', node.bucket = $bucket, node.componentCount = $componentCount, node.contentType = $contentType, node.crc32c = $crc32c, node.customTime = $customTime, node.etag = $etag, node.eventBasedHold = $eventBasedHold, node.generation = $generation, node.id = $id, node.kind = $kind, node.mediaLink = $mediaLink, node.metadata = $metadata, node.metageneration = $metageneration, node.name = $name, node.selfLink = $selfLink, node.size = $size, node.storageClass = $storageClass, node.temporaryHold = $temporaryHold, node.timeCreated = $timeCreated, node.timeStorageClassUpdated = $timeStorageClassUpdated, node.updated = $updated, node.trellisUuid = $trellisUuid, node.path = $path, node.dirname = $dirname, node.basename = $basename, node.extension = $extension, node.filetype = $filetype, node.gitCommitHash = $gitCommitHash, node.gitVersionTag = $gitVersionTag, node.uri = $uri, node.timeCreatedEpoch = $timeCreatedEpoch, node.timeUpdatedEpoch = $timeUpdatedEpoch, node.timeCreatedIso = $timeCreatedIso, node.timeUpdatedIso = $timeUpdatedIso, node.plate = $plate, node.sample = $sample, node.matePair = $matePair, node.readGroup = $readGroup ON MATCH SET node.nodeIteration = 'merged', node.size = $size, node.timeUpdatedEpoch = $timeUpdatedEpoch, node.timeUpdatedIso = $timeUpdatedIso, node.timeStorageClassUpdated = $timeStorageClassUpdated, node.updated = $updated, node.id = $id, node.crc32c = $crc32c, node.generation = $generation, node.storageClass = $storageClass RETURN node"
 		fastq_query_parameters = {
 			'bucket': 'gcp-bucket-mvp-test-from-personalis',
 			'componentCount': 32,
@@ -114,7 +114,7 @@ class TestQueryRequestWriter(TestCase):
 					seed_id = cls.seed_id,
 					previous_event_id = cls.previous_event_id,
 					query_name = query_name,
-					query = query,
+					cypher = cypher,
 					query_parameters = fastq_query_parameters,
 					custom = True,
 					write_transaction = True,
@@ -134,7 +134,7 @@ class TestQueryRequestWriter(TestCase):
 
 		# Check body values
 		assert body['queryName'] == query_name
-		assert len(body['query']) == 1602
+		assert len(body['cypher']) == 1602
 		assert body['queryParameters'] == fastq_query_parameters
 		assert body['writeTransaction'] == True
 		assert body['publishTo'] == publish_to
