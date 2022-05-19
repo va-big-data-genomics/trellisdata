@@ -40,7 +40,7 @@ class QueryRequestWriter(MessageWriter):
                  query_name,
                  query_parameters,
                  custom=False,
-                 query=None,
+                 cypher=None,
                  write_transaction=False,
                  split_results=False,
                  publish_to=None,
@@ -55,7 +55,7 @@ class QueryRequestWriter(MessageWriter):
         self.query_name = query_name
         self.query_parameters = query_parameters
         self.custom = custom
-        self.query = query
+        self.cypher = cypher
         self.write_transaction = write_transaction
         self.split_results = split_results
         self.publish_to = publish_to
@@ -75,7 +75,7 @@ class QueryRequestWriter(MessageWriter):
 
         if self.custom:
             custom_fields = {
-                "query": self.query,
+                "cypher": self.cypher,
                 "writeTransaction": self.write_transaction,
                 "splitResults": self.split_results,
                 "publishTo": self.publish_to,
@@ -223,6 +223,19 @@ class QueryResponseWriter(MessageWriter):
         return node_dict
 
 
+class JobCreatedWriter(MessageWriter):
+    def __init__(
+                 self,
+                 *,
+                 sender,
+                 seed_id,
+                 previous_event_id):
+
+        self.message_kind = "jobCreated"
+
+    def format_json_message(self):
+        pass
+
 class MessageReader(object):
 
     def __init__(
@@ -299,6 +312,9 @@ class QueryResponseReader(MessageReader):
         self.nodes = self.body['nodes']
         self.relationships = self.body['relationships']
 
+
+class JobCreatedReader(MessageReader):
+    pass
 
 
 """
