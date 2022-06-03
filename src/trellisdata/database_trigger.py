@@ -31,7 +31,7 @@ class TriggerController:
                 else:
                     self.relationship_triggers[trigger.start['label']] = [trigger]
             else:
-                return ValueError(f"{trigger.pattern} is not a supported trigger pattern.")
+                raise ValueError(f"{trigger.pattern} is not a supported trigger pattern.")
 
     def evaluate_trigger_conditions(self, query_response):
         """
@@ -42,30 +42,39 @@ class TriggerController:
 
         result_pattern = self._determine_result_pattern(query_response)
 
-        if result_pattern == 'node':
+        if not result_pattern:
+            return None
+        elif result_pattern == 'node':
             activated_triggers = self._evaluate_node_triggers(query_response)
         elif result_pattern == 'relationship':
             activated_triggers = self._evaluate_relationship_triggers(query_response)
         else:
-            return ValueError()
+            raise ValueError(f"{trigger.pattern} is not a supported trigger pattern.")
         return activated_triggers
 
     def _determine_result_pattern(self, query_response):
         len_nodes = len(query_response.nodes)
         len_relationships = len(query_response.relationships)
 
+        if len_nodes == 0:
+            return None
         if len_nodes == 1 and len_relationships == 0:
             return "node"
         elif len_nodes == 2 and len_relationships == 1:
             return "relationship"
         else:
-            return ValueError()
+            raise ValueError(f"Number of nodes ({len_nodes}) and relationships ({len_relationships}) " +
+                              "does not fit a recognized return pattern.")
 
     def _evaluate_node_triggers(self, query_response):
+        """
+        When evaluating node triggers, the only criterion is 
+        whether the node label matches the trigger label.
+        """
         node = query_response.nodes[0]
         node_labels = node['labels']
         if len(node_labels) > 1:
-            raise ValueError
+            raise ValueError(f"More than 1 node label provided: {node_labels}.")
         else:
             node_label = node_labels[0]
 
