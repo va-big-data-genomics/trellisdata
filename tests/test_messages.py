@@ -7,6 +7,15 @@ import neo4j
 import base64
 import pytest
 
+from neo4j.graph import (
+	Graph,
+	Node,
+	Relationship,
+)
+
+from neo4j.work.summary import ResultSummary
+
+
 from unittest import TestCase
 
 #from neo4j import GraphDatabase
@@ -276,7 +285,7 @@ class TestQueryRequestReader(TestCase):
 					    	'readGroup': 0
 					    }, 
 			    		'custom': True, 
-			    		'query': "MERGE (node:Fastq { uri: $uri, crc32c: $crc32c }) ON CREATE SET node.nodeCreated = timestamp(), node.nodeIteration = 'initial', node.bucket = $bucket, node.componentCount = $componentCount, node.contentType = $contentType, node.crc32c = $crc32c, node.customTime = $customTime, node.etag = $etag, node.eventBasedHold = $eventBasedHold, node.generation = $generation, node.id = $id, node.kind = $kind, node.mediaLink = $mediaLink, node.metadata = $metadata, node.metageneration = $metageneration, node.name = $name, node.selfLink = $selfLink, node.size = $size, node.storageClass = $storageClass, node.temporaryHold = $temporaryHold, node.timeCreated = $timeCreated, node.timeStorageClassUpdated = $timeStorageClassUpdated, node.updated = $updated, node.trellisUuid = $trellisUuid, node.path = $path, node.dirname = $dirname, node.basename = $basename, node.extension = $extension, node.filetype = $filetype, node.gitCommitHash = $gitCommitHash, node.gitVersionTag = $gitVersionTag, node.uri = $uri, node.timeCreatedEpoch = $timeCreatedEpoch, node.timeUpdatedEpoch = $timeUpdatedEpoch, node.timeCreatedIso = $timeCreatedIso, node.timeUpdatedIso = $timeUpdatedIso, node.plate = $plate, node.sample = $sample, node.matePair = $matePair, node.readGroup = $readGroup ON MATCH SET node.nodeIteration = 'merged', node.size = $size, node.timeUpdatedEpoch = $timeUpdatedEpoch, node.timeUpdatedIso = $timeUpdatedIso, node.timeStorageClassUpdated = $timeStorageClassUpdated, node.updated = $updated, node.id = $id, node.crc32c = $crc32c, node.generation = $generation, node.storageClass = $storageClass RETURN node", 
+			    		'cypher': "MERGE (node:Fastq { uri: $uri, crc32c: $crc32c }) ON CREATE SET node.nodeCreated = timestamp(), node.nodeIteration = 'initial', node.bucket = $bucket, node.componentCount = $componentCount, node.contentType = $contentType, node.crc32c = $crc32c, node.customTime = $customTime, node.etag = $etag, node.eventBasedHold = $eventBasedHold, node.generation = $generation, node.id = $id, node.kind = $kind, node.mediaLink = $mediaLink, node.metadata = $metadata, node.metageneration = $metageneration, node.name = $name, node.selfLink = $selfLink, node.size = $size, node.storageClass = $storageClass, node.temporaryHold = $temporaryHold, node.timeCreated = $timeCreated, node.timeStorageClassUpdated = $timeStorageClassUpdated, node.updated = $updated, node.trellisUuid = $trellisUuid, node.path = $path, node.dirname = $dirname, node.basename = $basename, node.extension = $extension, node.filetype = $filetype, node.gitCommitHash = $gitCommitHash, node.gitVersionTag = $gitVersionTag, node.uri = $uri, node.timeCreatedEpoch = $timeCreatedEpoch, node.timeUpdatedEpoch = $timeUpdatedEpoch, node.timeCreatedIso = $timeCreatedIso, node.timeUpdatedIso = $timeUpdatedIso, node.plate = $plate, node.sample = $sample, node.matePair = $matePair, node.readGroup = $readGroup ON MATCH SET node.nodeIteration = 'merged', node.size = $size, node.timeUpdatedEpoch = $timeUpdatedEpoch, node.timeUpdatedIso = $timeUpdatedIso, node.timeStorageClassUpdated = $timeStorageClassUpdated, node.updated = $updated, node.id = $id, node.crc32c = $crc32c, node.generation = $generation, node.storageClass = $storageClass RETURN node", 
 			    		'writeTransaction': True,
 			    		'splitResults': False,
 			    		'publishTo': 'check-triggers', 
@@ -306,29 +315,92 @@ class TestQueryRequestReader(TestCase):
 		assert request.query_parameters['trellisUuid'] == 1234 
 		assert request.query_parameters['uri'] == 'gs://gcp-bucket-mvp-test-from-personalis/va_mvp_phase2/PLATE0/SAMPLE0/FASTQ/SAMPLE0_0_R1.fastq.gz'
 
-		assert request.query == data['body']['query']
+		assert request.cypher == data['body']['cypher']
 		assert request.write_transaction == data['body']['writeTransaction']
 		assert request.publish_to == data['body']['publishTo']
 		assert request.returns == data['body']['returns']
 
+#class TestQueryRequestWriteRead(TestCase):
 
 class TestQueryResponseWriter(TestCase):
 
-	bolt_port = 7687
-	bolt_address = "localhost"
-	bolt_uri = f"bolt://{bolt_address}:{bolt_port}"
+	#bolt_port = 7687
+	#bolt_address = "localhost"
+	#bolt_uri = f"bolt://{bolt_address}:{bolt_port}"
 	
-	user = "neo4j"
-	password = "test"
-	auth_token = (user, password)
+	#user = "neo4j"
+	#password = "trellisdata-test"
+	#auth_token = (user, password)
 
-	driver = neo4j.GraphDatabase.driver(bolt_uri, auth=auth_token)
+	#driver = neo4j.GraphDatabase.driver(bolt_uri, auth=auth_token)
 
 	# Trellis attributes
 	sender = "test-messages"
 	seed_id = 123
 	previous_event_id = 456
 
+	# Reference: https://github.com/neo4j/neo4j-python-driver/blob/1ed96f94a7a59f49c473dadbb81715dc9651db98/tests/unit/common/test_types.py
+	single_node_graph = Graph()
+	# Hydrate graph with node
+	graph_hydrator = Graph.Hydrator(single_node_graph)
+	graph_hydrator.hydrate_node(
+						n_id = 1,
+						n_labels = {"Person"},
+						properties = {"name": "Alice", "age": 33})
+
+	#result_metadata = {"server": "neo4j"}
+	#result_summary = ResultSummary("localhost", result_metadata)
+
+	@classmethod
+	def test_single_node(cls):
+		response = trellis.QueryResponseWriter(
+					sender = cls.sender,
+					seed_id = cls.seed_id,
+					previous_event_id = cls.previous_event_id,
+					query_name = "create-alice",
+					graph = cls.single_node_graph,
+					result_summary = None,
+					pattern = "node")
+		messages = list(response.format_json_message_iter())
+		assert len(messages) == 1
+
+
+	@classmethod
+	def test_aggregate_multiple_nodes(cls):
+		# Create a graph
+		# Create a node
+		# Create a node
+		# Hydrate graph with nodes
+		pass
+
+	@classmethod
+	def test_split_multiple_nodes(cls):
+		pass
+
+	@classmethod
+	def test_create_dummy_graph(cls):
+		# Instantiate graph variable (assign memory)
+		graph = Graph()
+		#node = neo4j.Node(
+		#				  graph = graph,
+		#				  n_id = 1,
+		#				  n_labels = {"Test"},
+		#				  properties = {"size": 100})
+
+		# Add nodes to the graph via hydrator
+		graph_hydrator = Graph.Hydrator(graph)
+		joe_values = (1, {"Person"}, {"name": "joe"})
+
+		# Note: This function looks to be changing to hydrate_nodes() in v5.0
+		joe = graph_hydrator.hydrate_node(*joe_values)
+
+	@classmethod
+	def test_create_dummy_result_summary(cls):
+		neo4j_mock_metadata = {
+
+		}
+
+	"""
 	@classmethod
 	def test_create_dummy_response(cls):
 
@@ -349,13 +421,14 @@ class TestQueryResponseWriter(TestCase):
 		assert isinstance(response.result_summary, neo4j.ResultSummary)
 		assert response.result_summary.query == "RETURN 1"
 		assert isinstance(response.result_summary.parameters, dict)
+	"""
 
 	@classmethod
-	def test_format_json_message_iter(cls):
-		with cls.driver.session() as session:
-			result = session.run("MERGE (p:Person {name: 'Joe'}) RETURN p")
-			graph = result.graph()
-			result_summary = result.consume()
+	def test_format_json_message_iter_node(cls):
+		#with cls.driver.session() as session:
+		#	result = session.run("MERGE (p:Person {name: 'Joe'}) RETURN p")
+		#	graph = result.graph()
+		#	result_summary = result.consume()
 
 		response = trellis.QueryResponseWriter(
 										 sender = cls.sender,
@@ -368,6 +441,7 @@ class TestQueryResponseWriter(TestCase):
 		messages = list(response.format_json_message_iter())
 		assert len(messages) == 1
 
+	"""
 	@classmethod
 	def test_message_nodes_and_relationship(cls):
 		query_name = "relate-bobs"
@@ -427,9 +501,11 @@ class TestQueryResponseWriter(TestCase):
 		assert counters['relationships_created'] == 1
 		assert counters['nodes_created'] == 2
 		assert counters['properties_set'] == 2
+	"""
 
+	"""
 	@classmethod
-	def test_parse_pubsub_message(cls):
+	def test_write_pubsub_message(cls):
 		query_name = "relate-bobs"
 		query = "CREATE (p:Person {name:'Bob'})-[r:KNOWS]->(p2:Person {name:'Bob2'}) RETURN p, p2, r"
 
@@ -446,6 +522,7 @@ class TestQueryResponseWriter(TestCase):
 										 graph = graph,
 										 result_summary = result_summary)
 		message = response.format_json_message()
+	"""
 		
 
 class TestQueryResponseReader(TestCase):
