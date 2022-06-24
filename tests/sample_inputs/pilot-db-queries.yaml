@@ -4,7 +4,7 @@ query: "MATCH (fastq:Fastq)<-[]-(:PersonalisSequencing)<-[]-(s:Sample)<-[]-(:Per
 required_parameters:
   sample: str
 write_transaction: true
-split_results: false
+split_results: true
 publish_to: 
   - TOPIC_TRIGGERS
 indexes:

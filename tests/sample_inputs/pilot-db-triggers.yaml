@@ -3,25 +3,25 @@ name: LaunchGatk5Dollar
 pattern: relationship
 start:
     label: Job
+relationship: 
+    type: GENERATED
 end: 
     label: Ubam
     properties:
         sample: sample
-relationship: 
-    type: GENERATED
 query: launchGatk5Dollar
 --- !DatabaseTrigger
 name: LaunchFastqToUbam
 pattern: relationship
 start: 
     label: PersonalisSequencing
+relationship: 
+    type: GENERATED
 end: 
     label: Fastq
     properties:
         sample: sample
         readGroup: read_group
-relationship: 
-    type: GENERATED
 query: launchFastqToUbam
 --- !DatabaseTrigger
 name: RelateGenomeToFastq
@@ -36,6 +36,18 @@ relationship:
     type: HAS_BIOLOGICAL_OME
 query: relateGenomeToFastq
 --- !DatabaseTrigger
+name: RelateFastqToGenome
+pattern: relationship
+start: 
+    label: PersonalisSequencing
+end: 
+    label: Fastq
+    properties:
+        sample: sample
+relationship: 
+    type: GENERATED
+query: relateGenomeToFastq
+--- !DatabaseTrigger
 name: MergeBiologicalNodes
 pattern: node
 start: 
@@ -44,7 +56,7 @@ start:
         sample: sample
 query: mergeBiologicalNodes
 --- !DatabaseTrigger
-name: RelateFastqToPersonalisSequencing
+name: relateFastqToPersonalisSequencing
 pattern: node
 start: 
     label: Fastq
@@ -53,7 +65,7 @@ start:
         uri: uri
 query: relateFastqToPersonalisSequencing
 --- !DatabaseTrigger
-name: RelateMicroarrayToPersonalisSequencing
+name: relateMicroarrayToPersonalisSequencing
 pattern: node
 start: 
     label: Microarray
@@ -70,27 +82,3 @@ start:
         sample: sample
         uri: uri
 query: relateChecksumToPersonalisSequencing
---- !DatabaseTrigger
-name: RelatePersonalisSequencingToFastqs
-pattern: node
-start: 
-    label: PersonalisSequencing
-    properties:
-        sample: sample
-query: relatePersonalisSequencingToFastqs
---- !DatabaseTrigger
-name: RelatePersonalisSequencingToMicroarrays
-pattern: node
-start: 
-    label: Microarray
-    properties:
-        sample: sample
-query: relatePersonalisSequencingToMicroarrays
---- !DatabaseTrigger
-name: RelatePersonalisSequencingToChecksum
-pattern: node
-start: 
-    label: Checksum
-    properties:
-        sample: sample
-query: relatePersonalisSequencingToChecksum
