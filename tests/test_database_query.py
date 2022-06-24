@@ -8,7 +8,7 @@ from trellisdata import DatabaseQuery
 tbi_query = """
 --- !DatabaseQuery
 name: relateTbiToGvcf
-cypher: 'MATCH (gvcf:Gvcf)<-[:GENERATED]-(step:CromwellStep)-[:GENERATED]->(tbi:Tbi) WHERE tbi.id = $tbi_id AND step.wdlCallAlias = "mergevcfs" MERGE (gvcf)-[:HAS_INDEX {ontology: "bioinformatics"}]->(tbi) RETURN gvcf AS node'
+cypher: 'MATCH (gvcf:Gvcf)<-[:GENERATED]-(step:CromwellStep)-[:GENERATED]->(tbi:Tbi) WHERE tbi.id = $tbi_id AND step.wdlCallAlias = "mergevcfs" MERGE (gvcf)-[has:HAS_INDEX {ontology: "bioinformatics"}]->(tbi) RETURN gvcf, has, tbi'
 required_parameters:
   tbi_id: str
 write_transaction: true
@@ -19,8 +19,9 @@ indexes:
   Tbi:
   - id
 returns:
-  pattern: node
-  start: Gvcf
+  -
+    pattern: node
+    start: Gvcf
 """
 
 gvcf_query_doc = """
@@ -38,10 +39,11 @@ indexes:
     - cromwellWorkflowId
     - wdlCallAlias
 returns:
-  pattern: relationship
-  start: Gvcf
-  relationship: HAS_INDED
-  end: Tbi
+  -
+    pattern: relationship
+    start: Gvcf
+    relationship: HAS_INDED
+    end: Tbi
 active: true
 """
 
@@ -132,6 +134,17 @@ class TestDatabaseQuery(TestCase):
 			queries = list(queries)
 
 		assert len(queries) == 8
+
+		query = queries[0]
+
+		assert query.name
+		assert query.cypher
+		assert query.required_parameters
+		assert query.write_transaction
+		assert query.split_results
+		assert query.publish_to
+		assert query.indexes
+		assert query.returns
 
 	@classmethod
 	def test_create_custom_query_with_params(cls):
