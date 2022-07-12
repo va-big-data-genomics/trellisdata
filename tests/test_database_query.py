@@ -62,10 +62,11 @@ indexes:
     - cromwellWorkflowId
     - wdlCallAlias
 returns:
-  pattern: relationship
-  start: Gvcf
-  relationship: HAS_INDED
-  end: Tbi
+  -
+    pattern: relationship
+    start: Gvcf
+    relationship: HAS_INDED
+    end: Tbi
 active: true
 --- !DatabaseQuery
 name: relateGenomeToFastq
@@ -80,10 +81,11 @@ indexes:
   Sample: 
   - sample
 returns:
-  pattern: relationship
-  start: Genome
-  relationship: HAS_SEQUENCING_READS
-  end: Fastq
+  -
+    pattern: relationship
+    start: Genome
+    relationship: HAS_SEQUENCING_READS
+    end: Fastq
 active: true
 """
 
@@ -277,6 +279,9 @@ class TestDatabaseQuery(TestCase):
 		assert relate_gvcf.active == True
 		#pdb.set_trace()
 		assert relate_fastq.active == True
+
+		assert relate_gvcf.name == 'relateGvcfToTbi'
+		assert gvcf_query.name == 'relateGvcfToTbi'
 		
 		assert relate_gvcf == gvcf_query
 		assert relate_gvcf != relate_fastq
