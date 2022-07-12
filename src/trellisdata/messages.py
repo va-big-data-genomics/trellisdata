@@ -95,7 +95,8 @@ class QueryResponseWriter(MessageWriter):
                  previous_event_id,
                  query_name,
                  result_summary,
-                 graph):
+                 graph,
+                 pattern):
 
         super().__init__(
                          sender,
@@ -108,6 +109,8 @@ class QueryResponseWriter(MessageWriter):
         self.graph = graph
         self.nodes = []
         self.relationships = []
+        self.pattern = pattern
+        self.supported_patterns = ['node', 'relationship']
 
         if self.graph:
             for node in self.graph.nodes:
@@ -116,37 +119,46 @@ class QueryResponseWriter(MessageWriter):
             for relationship in self.graph.relationships:
                 self.relationships.append(relationship)
 
-    def format_json_message(self):
+    def return_json_with_all_nodes(self):
+        if self.pattern == 'relationship':
+            raise ValueError("Cannot use this method to publish relationships. Use 'generate_separate_entity_jsons()' instead.")
+
         message = super().format_json_header()
 
         body = {
            "body": {
                     "queryName": self.query_name,
                     "nodes": [self._get_node_dict(node) for node in self.nodes],
-                    "relationships": [self._get_relationship_dict(rel) for rel in self.relationships],
+                    # Note: Each relationship triple should be delivered separately using 
+                    # the generate_individual_jsons() method.
+                    "relationship": {},
+                    #"relationships": [self._get_relationship_dict(rel) for rel in self.relationships],
                     "resultSummary": self._get_result_summary_dict(self.result_summary)
            }
         }
         message.update(body)
         return message
 
-    def format_json_message_iter(self):
-        for entity in self.nodes + self.relationships:
-            yield self._format_json_message_single_result(entity)
+    def generate_separate_entity_jsons(self):
+        summary_dict = self._get_result_summary_dict(self.result_summary)
 
-    def _format_json_message_single_result(self, entity):
-        result_nodes = None
-        result_relationship = None
+        if self.pattern == "node":
+            for node in self.nodes:
+                yield self._format_json_message(
+                                                nodes = [node],
+                                                relationship = {},
+                                                result_summary = summary_dict)
+        elif self.pattern == "relationship":
+            for relationship in self.relationships:
+                relationship_dict = self._get_relationship_dict(relationship)
+                yield self._format_json_message(
+                                                nodes = [],
+                                                relationship = relationship_dict,
+                                                result_summary = summary_dict)
+        else:
+            raise ValueError(f"Pattern '{self.pattern}' not in supported patterns: {self.supported_patterns}.")
 
-        if isinstance(entity, neo4j.graph.Node):
-            node = [entity]
-            relationship = []
-        elif isinstance(entity, neo4j.graph.Relationship):
-            node = []
-            relationship = [entity]
-
-        result_summary_dict = self._get_result_summary_dict(self.result_summary)
-
+    def _format_json_message(self, nodes, relationship, result_summary):
         message = {
            "header": {
                       "messageKind": self.message_kind,
@@ -156,9 +168,10 @@ class QueryResponseWriter(MessageWriter):
            },
            "body": {
                     "queryName": self.query_name,
-                    "nodes": node,
-                    "relationships": relationship,
-                    "resultSummary": self._get_result_summary_dict(self.result_summary)
+                    "nodes": nodes,
+                    "relationship": relationship,
+                    "resultSummary": result_summary,
+                    #"pattern": self.pattern
            }
         }
         return message
@@ -236,6 +249,7 @@ class JobCreatedWriter(MessageWriter):
     def format_json_message(self):
         pass
 
+
 class MessageReader(object):
 
     def __init__(
@@ -288,7 +302,7 @@ class QueryRequestReader(MessageReader):
 
         # Should only be populated for custom queries
         if self.custom:
-            self.query = self.body['query']
+            self.cypher = self.body['cypher']
             self.write_transaction = bool(self.body['writeTransaction'])
             self.split_results = bool(self.body['splitResults'])
             self.publish_to = self.body.get('publishTo')
@@ -310,7 +324,8 @@ class QueryResponseReader(MessageReader):
         self.query_name = self.body['queryName']
         self.result_summary = self.body['resultSummary']
         self.nodes = self.body['nodes']
-        self.relationships = self.body['relationships']
+        self.relationship = self.body['relationship']
+        #self.pattern = self.body['pattern']
 
 
 class JobCreatedReader(MessageReader):
