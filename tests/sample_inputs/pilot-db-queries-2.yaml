@@ -1,0 +1,58 @@
+--- !DatabaseQuery
+name: relateGenomeToFastq
+cypher: 'MATCH (fastq:Fastq)<-[]-(:PersonalisSequencing)<-[]-(s:Sample)<-[]-(:Person)-[]->(genome:Genome)
+  WHERE s.sample = $sample AND NOT (g)-[:HAS_SEQUENCING_READS]->(f)
+  MERGE (genome)-[rel:HAS_SEQUENCING_READS]->(fastq)
+  RETURN genome, rel, fastq'
+required_parameters:
+  sample: str
+write_transaction: true
+split_results: true
+publish_to: 
+  - TOPIC_TRIGGERS
+indexes:
+  Sample: 
+    - sample
+pattern: relationship
+returns:
+  -
+    start: Genome
+    relationship: HAS_SEQUENCING_READS
+    end: Fastq
+--- !DatabaseQuery
+name: mergeBiologicalNodes
+cypher: 'MATCH (seq:PersonalisSequencing) 
+  WHERE seq.sample = $sample 
+  MERGE (seq)<-[used_by:WAS_USED_BY {ontology: ''provenance''}]-(sample:Sample {sample: s.sample})
+  <-[generated:GENERATED {ontology:''provenance''}]-(person:Person {sample: s.sample})
+  -[has:HAS_BIOLOGICAL_OME {ontology:''bioinformatics''}]->(genome:Genome {sample: s.sample})
+  RETURN seq, used_by, sample, generated, person, has, genome'
+required_parameters:
+  sample: str
+write_transaction: true
+split_results: false
+publish_to: 
+  - TOPIC_TRIGGERS
+indexes:
+  Sample:
+    - sample
+  PersonalisSequencing:
+    - sample
+  Person:
+    - sample
+  Genome:
+    - sample
+pattern: relationship
+returns:
+  -
+    start: Person
+    relationship: HAS_BIOLOGICAL_OME
+    end: Genome
+  -
+    start: Sample
+    relationship: WAS_USED_BY
+    end: PersonalisSequencing
+  - 
+    start: Person
+    relationship: GENERATED
+    end: Sample
