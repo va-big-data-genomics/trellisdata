@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import re
 import pdb
 import json
 import mock
@@ -14,6 +15,7 @@ from neo4j.graph import (
 )
 
 from neo4j.work.summary import ResultSummary
+from neo4j.addressing import Address
 
 
 from unittest import TestCase
@@ -324,16 +326,6 @@ class TestQueryRequestReader(TestCase):
 
 class TestQueryResponseWriter(TestCase):
 
-	#bolt_port = 7687
-	#bolt_address = "localhost"
-	#bolt_uri = f"bolt://{bolt_address}:{bolt_port}"
-	
-	#user = "neo4j"
-	#password = "trellisdata-test"
-	#auth_token = (user, password)
-
-	#driver = neo4j.GraphDatabase.driver(bolt_uri, auth=auth_token)
-
 	# Trellis attributes
 	sender = "test-messages"
 	seed_id = 123
@@ -348,182 +340,185 @@ class TestQueryResponseWriter(TestCase):
 						n_labels = {"Person"},
 						properties = {"name": "Alice", "age": 33})
 
-	#result_metadata = {"server": "neo4j"}
-	#result_summary = ResultSummary("localhost", result_metadata)
+	# Need to generate a mock result summary
+	address = Address(("bolt://localhost", 7687))
+	version = neo4j.Version(3, 0)
+	server_info = neo4j.ServerInfo(address, version)
+
+	result_metadata = {"server": server_info}
+	result_summary = ResultSummary("localhost", **result_metadata)
 
 	@classmethod
-	def test_single_node(cls):
+	def test_split_single_node(cls):
+		# Reference: https://github.com/neo4j/neo4j-python-driver/blob/1ed96f94a7a59f49c473dadbb81715dc9651db98/tests/unit/common/test_types.py
+		single_node_graph = Graph()
+		# Hydrate graph with node
+		graph_hydrator = Graph.Hydrator(single_node_graph)
+		graph_hydrator.hydrate_node(
+									n_id = 1,
+									n_labels = {"Person"},
+									properties = {"name": "Alice", "age": 33})
+
 		response = trellis.QueryResponseWriter(
 					sender = cls.sender,
 					seed_id = cls.seed_id,
 					previous_event_id = cls.previous_event_id,
 					query_name = "create-alice",
 					graph = cls.single_node_graph,
-					result_summary = None,
+					result_summary = cls.result_summary,
 					pattern = "node")
-		messages = list(response.format_json_message_iter())
+		messages = list(response.generate_separate_entity_jsons())
 		assert len(messages) == 1
 
+	@classmethod
+	def test_split_multiple_nodes(cls):
+		# Create a graph
+		multi_node_graph = Graph()
+		graph_hydrator = Graph.Hydrator(multi_node_graph)
+
+		# Hydrate graph with nodes
+		# Create a node
+		graph_hydrator.hydrate_node(
+									n_id = 1,
+									n_labels = {"Person"},
+									properties = {"name": "Alice", "age": 33})
+		# Create a node
+		graph_hydrator.hydrate_node(
+									n_id = 2,
+									n_labels = {"Person"},
+									properties = {"name": "Nick", "age": 27})
+
+		response = trellis.QueryResponseWriter(
+					sender = cls.sender,
+					seed_id = cls.seed_id,
+					previous_event_id = cls.previous_event_id,
+					query_name = "create-alice",
+					graph = multi_node_graph,
+					result_summary = cls.result_summary,
+					pattern = "node")
+		messages = list(response.generate_separate_entity_jsons())
+		assert len(messages) == 2
+
+		for message in messages:
+			assert len(message['body']['nodes']) == 1
 
 	@classmethod
 	def test_aggregate_multiple_nodes(cls):
 		# Create a graph
-		# Create a node
-		# Create a node
+		multi_node_graph = Graph()
+		graph_hydrator = Graph.Hydrator(multi_node_graph)
+
 		# Hydrate graph with nodes
-		pass
-
-	@classmethod
-	def test_split_multiple_nodes(cls):
-		pass
-
-	@classmethod
-	def test_create_dummy_graph(cls):
-		# Instantiate graph variable (assign memory)
-		graph = Graph()
-		#node = neo4j.Node(
-		#				  graph = graph,
-		#				  n_id = 1,
-		#				  n_labels = {"Test"},
-		#				  properties = {"size": 100})
-
-		# Add nodes to the graph via hydrator
-		graph_hydrator = Graph.Hydrator(graph)
-		joe_values = (1, {"Person"}, {"name": "joe"})
-
-		# Note: This function looks to be changing to hydrate_nodes() in v5.0
-		joe = graph_hydrator.hydrate_node(*joe_values)
-
-	@classmethod
-	def test_create_dummy_result_summary(cls):
-		neo4j_mock_metadata = {
-
-		}
-
-	"""
-	@classmethod
-	def test_create_dummy_response(cls):
-
-		with cls.driver.session() as session:
-			result = session.run("RETURN 1")
-			graph = result.graph()
-			result_summary = result.consume()
+		# Create a node
+		graph_hydrator.hydrate_node(
+									n_id = 1,
+									n_labels = {"Person"},
+									properties = {"name": "Alice", "age": 33})
+		# Create a node
+		graph_hydrator.hydrate_node(
+									n_id = 2,
+									n_labels = {"Person"},
+									properties = {"name": "Nick", "age": 27})
 
 		response = trellis.QueryResponseWriter(
-										 sender = cls.sender,
-										 seed_id = cls.seed_id,
-										 previous_event_id = cls.previous_event_id,
-										 query_name = "return-1",
-										 graph = graph,
-										 result_summary = result_summary)
+					sender = cls.sender,
+					seed_id = cls.seed_id,
+					previous_event_id = cls.previous_event_id,
+					query_name = "create-alice",
+					graph = multi_node_graph,
+					result_summary = cls.result_summary,
+					pattern = "node")
+		message = response.return_json_with_all_nodes()
 
-		assert isinstance(response.graph, neo4j.graph.Graph)
-		assert isinstance(response.result_summary, neo4j.ResultSummary)
-		assert response.result_summary.query == "RETURN 1"
-		assert isinstance(response.result_summary.parameters, dict)
-	"""
+		assert len(message['body']['nodes']) == 2
 
 	@classmethod
-	def test_format_json_message_iter_node(cls):
-		#with cls.driver.session() as session:
-		#	result = session.run("MERGE (p:Person {name: 'Joe'}) RETURN p")
-		#	graph = result.graph()
-		#	result_summary = result.consume()
+	def test_split_multiple_rels(cls):
+		# Create a graph
+		multi_node_graph = Graph()
+		graph_hydrator = Graph.Hydrator(multi_node_graph)
+
+		# Hydrate graph with nodes
+		# Create a node
+		graph_hydrator.hydrate_node(
+									n_id = 1,
+									n_labels = {"Person"},
+									properties = {"name": "Alice", "age": 33})
+		# Create a node
+		graph_hydrator.hydrate_node(
+									n_id = 2,
+									n_labels = {"Person"},
+									properties = {"name": "Nick", "age": 27})
+		graph_hydrator.hydrate_relationship(
+									r_id = 1,
+									n0_id = 1,
+									n1_id = 2,
+									r_type = "IS_FRIENDS_WITH")
+		graph_hydrator.hydrate_relationship(
+									r_id = 2,
+									n0_id = 2,
+									n1_id = 1,
+									r_type = "LOATHES")
 
 		response = trellis.QueryResponseWriter(
-										 sender = cls.sender,
-										 seed_id = cls.seed_id,
-										 previous_event_id = cls.previous_event_id,
-										 query_name = "create-joe",
-										 graph = graph,
-										 result_summary = result_summary)
+					sender = cls.sender,
+					seed_id = cls.seed_id,
+					previous_event_id = cls.previous_event_id,
+					query_name = "create-alice",
+					graph = multi_node_graph,
+					result_summary = cls.result_summary,
+					pattern = "relationship")
+		messages = list(response.generate_separate_entity_jsons())
+		assert len(messages) == 2
 
-		messages = list(response.format_json_message_iter())
-		assert len(messages) == 1
+		for message in messages:
+			assert len(message['body']['nodes']) == 0
+			assert len(message['body']['relationship']) == 5
 
-	"""
+		#pdb.set_trace()
+
 	@classmethod
-	def test_message_nodes_and_relationship(cls):
-		query_name = "relate-bobs"
-		query = "CREATE (p:Person {name:'Bob'})-[r:KNOWS]->(p2:Person {name:'Bob2'}) RETURN p, p2, r"
+	def test_aggregate_multiple_rels(cls):
+		# This behavior is not allowed and should fail.
 
-		with cls.driver.session() as session:
-			result = session.run(query)
-			graph = result.graph()
-			result_summary = result.consume()
+		# Create a graph
+		multi_node_graph = Graph()
+		graph_hydrator = Graph.Hydrator(multi_node_graph)
 
-		response = trellis.QueryResponseWriter(
-										 sender = cls.sender,
-										 seed_id = cls.seed_id,
-										 previous_event_id = cls.previous_event_id,
-										 query_name = query_name,
-										 graph = graph,
-										 result_summary = result_summary)
-		message = response.format_json_message()
-
-		assert message['header']
-		assert message['header']['messageKind'] == 'queryResponse'
-		assert message['header']['seedId'] == cls.seed_id
-		assert message['header']['previousEventId'] == cls.previous_event_id
-
-		assert message['body']
-		assert message['body']['queryName'] == query_name
-		
-		nodes = message['body']['nodes']
-		assert len(nodes) == 2
-		for node in nodes:
-			assert node['id']
-			assert node['labels']
-			assert node['properties']
-
-		relationships = message['body']['relationships']
-		assert len(relationships) == 1
-		for rel in relationships:
-			assert rel['id']
-			assert rel['start_node']
-			assert rel['end_node']
-			assert rel['type'] == 'KNOWS'
-			assert rel['properties'] == {}
-
-		result_summary = message['body']['resultSummary']
-		assert result_summary['database'] == 'neo4j'
-		assert result_summary['query'] == query
-		assert result_summary['parameters'] == {}
-		assert result_summary['query_type'] == 'rw'
-		assert result_summary['plan'] == None
-		assert result_summary['profile'] == None
-		assert result_summary['notifications'] == None
-		assert isinstance(result_summary['result_available_after'], int)
-		assert isinstance(result_summary['result_consumed_after'], int)
-
-		counters = result_summary['counters']
-		assert counters['labels_added'] == 2
-		assert counters['relationships_created'] == 1
-		assert counters['nodes_created'] == 2
-		assert counters['properties_set'] == 2
-	"""
-
-	"""
-	@classmethod
-	def test_write_pubsub_message(cls):
-		query_name = "relate-bobs"
-		query = "CREATE (p:Person {name:'Bob'})-[r:KNOWS]->(p2:Person {name:'Bob2'}) RETURN p, p2, r"
-
-		with cls.driver.session() as session:
-			result = session.run(query)
-			graph = result.graph()
-			result_summary = result.consume()
+		# Hydrate graph with nodes
+		# Create a node
+		graph_hydrator.hydrate_node(
+									n_id = 1,
+									n_labels = {"Person"},
+									properties = {"name": "Alice", "age": 33})
+		# Create a node
+		graph_hydrator.hydrate_node(
+									n_id = 2,
+									n_labels = {"Person"},
+									properties = {"name": "Nick", "age": 27})
+		graph_hydrator.hydrate_relationship(
+									r_id = 1,
+									n0_id = 1,
+									n1_id = 2,
+									r_type = "IS_FRIENDS_WITH")
+		graph_hydrator.hydrate_relationship(
+									r_id = 2,
+									n0_id = 2,
+									n1_id = 1,
+									r_type = "LOATHES")
 
 		response = trellis.QueryResponseWriter(
-										 sender = cls.sender,
-										 seed_id = cls.seed_id,
-										 previous_event_id = cls.previous_event_id,
-										 query_name = query_name,
-										 graph = graph,
-										 result_summary = result_summary)
-		message = response.format_json_message()
-	"""
-		
+					sender = cls.sender,
+					seed_id = cls.seed_id,
+					previous_event_id = cls.previous_event_id,
+					query_name = "create-alice",
+					graph = multi_node_graph,
+					result_summary = cls.result_summary,
+					pattern = "relationship")
+		match_pattern = re.escape("Cannot use this method to publish relationships. Use 'generate_separate_entity_jsons()' instead.")
+		with pytest.raises(ValueError, match=match_pattern):
+			messages = list(response.return_json_with_all_nodes())
+
 
 class TestQueryResponseReader(TestCase):
 
@@ -550,23 +545,21 @@ class TestQueryResponseReader(TestCase):
 						'properties': {'name': 'Bob2'}
 					}
 				], 
-				'relationships': [
-					{
-						'id': 78, 
-						'start_node': {
-							'id': 157, 
-							'labels': ['Person'], 
-							'properties': {'name': 'Bob'}
-						}, 
-						'end_node': {
-							'id': 158, 
-							'labels': ['Person'], 
-							'properties': {'name': 'Bob2'}
-						}, 
-						'type': 'KNOWS', 
-						'properties': {}
-					}
-				], 
+				'relationship': {
+					'id': 78, 
+					'start_node': {
+						'id': 157, 
+						'labels': ['Person'], 
+						'properties': {'name': 'Bob'}
+					}, 
+					'end_node': {
+						'id': 158, 
+						'labels': ['Person'], 
+						'properties': {'name': 'Bob2'}
+					}, 
+					'type': 'KNOWS', 
+					'properties': {}
+				}, 
 				'resultSummary': {
 					'database': 'neo4j', 
 					'query': "CREATE (p:Person {name:'Bob'})-[r:KNOWS]->(p2:Person {name:'Bob2'}) RETURN p, p2, r", 
@@ -595,5 +588,5 @@ class TestQueryResponseReader(TestCase):
 											   mock_context,
 											   event)
 		assert response.result_summary['counters']['labels_added'] == 2
-		assert len(response.relationships) == 1
+		assert len(response.relationship) == 5
 		assert len(response.nodes) == 2
