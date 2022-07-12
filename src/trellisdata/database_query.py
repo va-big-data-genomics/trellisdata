@@ -28,10 +28,10 @@ class DatabaseQuery(yaml.YAMLObject):
 				 cypher,
 				 write_transaction,
 				 publish_to,
-				 split_results,
 				 returns,
 				 required_parameters,
-				 active):
+				 active=True,
+				 split_results=False):
 		self.name = name
 		self.cypher = cypher
 		self.write_transaction = write_transaction
