@@ -95,8 +95,8 @@ class QueryResponseWriter(MessageWriter):
                  previous_event_id,
                  query_name,
                  result_summary,
-                 graph,
-                 pattern):
+                 graph):
+                 #pattern):
 
         super().__init__(
                          sender,
@@ -109,7 +109,7 @@ class QueryResponseWriter(MessageWriter):
         self.graph = graph
         self.nodes = []
         self.relationships = []
-        self.pattern = pattern
+        #self.pattern = pattern
         self.supported_patterns = ['node', 'relationship']
 
         if self.graph:
@@ -118,6 +118,11 @@ class QueryResponseWriter(MessageWriter):
 
             for relationship in self.graph.relationships:
                 self.relationships.append(relationship)
+
+        if self.relationships:
+            self.pattern = "relationship"
+        else:
+            self.pattern = "node"
 
     def return_json_with_all_nodes(self):
         if self.pattern == 'relationship':
