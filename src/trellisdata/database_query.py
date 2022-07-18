@@ -31,12 +31,12 @@ class DatabaseQuery(yaml.YAMLObject):
 				 returns,
 				 required_parameters,
 				 active=True,
-				 split_results=False):
+				 aggregate_results=False):
 		self.name = name
 		self.cypher = cypher
 		self.write_transaction = write_transaction
 		self.publish_to = publish_to
-		self.split_results = split_results
+		self.aggregate_results = aggregate_results
 		self.returns = returns
 		self.required_parameters = required_parameters
 		self.active = active
@@ -52,7 +52,7 @@ class DatabaseQuery(yaml.YAMLObject):
 			   self.cypher == other.cypher and
 			   self.write_transaction == other.write_transaction and
 			   self.publish_to == other.publish_to and
-			   self.split_results == other.split_results and
+			   self.aggregate_results == other.aggregate_results and
 			   self.returns == other.returns and
 			   self.required_parameters == other.required_parameters and
 			   self.active == other.active)
