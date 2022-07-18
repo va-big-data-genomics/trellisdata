@@ -5,6 +5,7 @@ import trellisdata as trellis
 
 from unittest import TestCase
 
+""" Deactivting until I can replace db dependency
 class TestOperationGrapher(TestCase):
 
 	## Get query response
@@ -114,4 +115,4 @@ class TestOperationGrapher(TestCase):
 		with cls.driver.session() as session:
 			result_summary = session.write_transaction(
 								grapher._connect_triggers_to_activated_queries)
-
+"""
