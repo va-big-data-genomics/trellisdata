@@ -42,7 +42,7 @@ class QueryRequestWriter(MessageWriter):
                  custom=False,
                  cypher=None,
                  write_transaction=False,
-                 split_results=False,
+                 aggregate_results=False,
                  publish_to=None,
                  returns={}):
 
@@ -57,7 +57,7 @@ class QueryRequestWriter(MessageWriter):
         self.custom = custom
         self.cypher = cypher
         self.write_transaction = write_transaction
-        self.split_results = split_results
+        self.aggregate_results = aggregate_results
         self.publish_to = publish_to
         self.returns = returns
 
@@ -77,7 +77,7 @@ class QueryRequestWriter(MessageWriter):
             custom_fields = {
                 "cypher": self.cypher,
                 "writeTransaction": self.write_transaction,
-                "splitResults": self.split_results,
+                "aggregateResults": self.aggregate_results,
                 "publishTo": self.publish_to,
                 "returns": self.returns
             }
@@ -309,7 +309,7 @@ class QueryRequestReader(MessageReader):
         if self.custom:
             self.cypher = self.body['cypher']
             self.write_transaction = bool(self.body['writeTransaction'])
-            self.split_results = bool(self.body['splitResults'])
+            self.aggregate_results = bool(self.body['aggregateResults'])
             self.publish_to = self.body.get('publishTo')
             self.returns = self.body.get('returns')
 
