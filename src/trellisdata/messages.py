@@ -109,7 +109,6 @@ class QueryResponseWriter(MessageWriter):
         self.graph = graph
         self.nodes = []
         self.relationships = []
-        #self.pattern = pattern
         self.supported_patterns = ['node', 'relationship']
 
         if self.graph:
@@ -149,21 +148,45 @@ class QueryResponseWriter(MessageWriter):
 
         if self.pattern == "node":
             for node in self.nodes:
-                yield self._format_json_message(
-                                                nodes = [node],
-                                                relationship = {},
-                                                result_summary = summary_dict)
+                message = super().format_json_header()
+                body = {
+                        "body": {
+                            "queryName": self.query_name,
+                            "nodes": [self._get_node_dict(node)],
+                            "relationship": {},
+                            "resultSummary": summary_dict
+                        }
+                }
+                message.update(body)
+                yield message
+                #yield self._format_json_message(
+                #                                nodes = [node],
+                #                                relationship = {},
+                #                                result_summary = summary_dict)
         elif self.pattern == "relationship":
             for relationship in self.relationships:
-                relationship_dict = self._get_relationship_dict(relationship)
-                yield self._format_json_message(
-                                                nodes = [],
-                                                relationship = relationship_dict,
-                                                result_summary = summary_dict)
+                message = super().format_json_header()
+                body = {
+                        "body": {
+                            "queryName": self.query_name,
+                            "nodes": [],
+                            "relationship": self._get_relationship_dict(relationship),
+                            "resultSummary": summary_dict
+                        }
+                }
+                message.update(body)
+                yield message
+                #yield self._format_json_message(
+                #                                nodes = [],
+                #                                relationship = relationship,
+                #                                result_summary = summary_dict)
         else:
             raise ValueError(f"Pattern '{self.pattern}' not in supported patterns: {self.supported_patterns}.")
 
     def _format_json_message(self, nodes, relationship, result_summary):
+
+        if relationship:
+            relationship_dict = self._get_relationship_dic(relationship)
         message = {
            "header": {
                       "messageKind": self.message_kind,
@@ -173,8 +196,8 @@ class QueryResponseWriter(MessageWriter):
            },
            "body": {
                     "queryName": self.query_name,
-                    "nodes": nodes,
-                    "relationship": relationship,
+                    "nodes": [self._get_node_dict(node) for node in nodes],
+                    "relationship": self._get_relationship_dict(relationship),
                     "resultSummary": result_summary,
                     #"pattern": self.pattern
            }
