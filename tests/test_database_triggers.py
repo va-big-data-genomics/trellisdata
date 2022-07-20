@@ -324,8 +324,7 @@ class TestDatabaseTriggerController(TestCase):
 			previous_event_id=cls.previous_event_id,
 			query_name="relateGvcfTbi",
 			graph=triple_graph,
-			result_summary=cls.result_summary,
-			pattern = "relationship")
+			result_summary=cls.result_summary)
 		generator = write_response.generate_separate_entity_jsons()
 		
 		# Mocking the process of posting messages
@@ -374,8 +373,7 @@ class TestDatabaseTriggerController(TestCase):
 			previous_event_id=cls.previous_event_id,
 			query_name="createFastq",
 			graph=node_graph,
-			result_summary=cls.result_summary,
-			pattern = "node")
+			result_summary=cls.result_summary)
 		message = write_response.return_json_with_all_nodes()
 		
 		data_str = json.dumps(message)
