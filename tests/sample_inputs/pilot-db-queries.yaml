@@ -4,34 +4,34 @@ cypher: "MATCH (fastq:Fastq)<-[]-(:PersonalisSequencing)<-[]-(s:Sample)<-[]-(:Pe
 required_parameters:
   sample: str
 write_transaction: true
-split_results: true
+aggregate_results: true
 publish_to: 
   - TOPIC_TRIGGERS
 indexes:
   Sample: 
     - sample
 returns:
-  pattern: relationship
-  start: Genome
-  relationship: HAS_SEQUENCING_READS
-  end: Fastq
+  -
+    start: Genome
+    relationship: HAS_SEQUENCING_READS
+    end: Fastq
 --- !DatabaseQuery
 name: mergeBiologicalNodes
 cypher: "MATCH (s:PersonalisSequencing) WHERE s.sample = $sample MERGE (s)<-[:WAS_USED_BY {ontology: 'provenance'}]-(:Sample {sample: s.sample})<-[:GENERATED {ontology:'provenance'}]-(person:Person {sample: s.sample})-[has:HAS_BIOLOGICAL_OME {ontology:'bioinformatics'}]->(genome:Genome {sample: s.sample}) RETURN person, has, genome"
 required_parameters:
   sample: str
 write_transaction: true
-split_results: false
+aggregate_results: false
 publish_to: 
   - TOPIC_TRIGGERS
 indexes:
   Sample:
     - sample
 returns:
-  pattern: relationship
-  start: Person
-  relationship: HAS_BIOLOGICAL_OME
-  end: Genome
+  -
+    start: Person
+    relationship: HAS_BIOLOGICAL_OME
+    end: Genome
 --- !DatabaseQuery
 name: relateFastqToPersonalisSequencing
 cypher: "MATCH (seq:PersonalisSequencing), (fastq:Fastq) WHERE fastq.uri=$uri AND seq.sample=fastq.sample MERGE (seq)-[rel:GENERATED]->(fastq) RETURN seq, rel, fastq"
@@ -39,7 +39,7 @@ required_parameters:
   sample: str
   uri: str
 write_transaction: true
-split_results: false
+aggregate_results: false
 publish_to: 
   - TOPIC_TRIGGERS
 indexes:
@@ -48,17 +48,17 @@ indexes:
   PersonalisSequencing:
     - sample
 returns:
-  pattern: relationship
-  start: PersonalisSequencing
-  relationship: GENERATED
-  end: Fastq
+  -
+    start: PersonalisSequencing
+    relationship: GENERATED
+    end: Fastq
 --- !DatabaseQuery
 name: relatePersonalisSequencingToFastqs
 cypher: "MATCH (seq:PersonalisSequencing), (fastq:Fastq) WHERE seq.sample=$sample AND fastq.sample=seq.sample MERGE (seq)-[rel:GENERATED]->(fastq) RETURN seq, rel, fastq"
 parameters:
   sample: str
 write_transaction: true
-split_results: false
+aggregate_results: false
 publish_to: 
   - TOPIC_TRIGGERS
 indexes:
@@ -67,10 +67,10 @@ indexes:
   PersonalisSequencing:
     - sample
 returns:
-  pattern: relationship
-  start: PersonalisSequencing
-  relationship: GENERATED
-  end: Fastq
+  -
+    start: PersonalisSequencing
+    relationship: GENERATED
+    end: Fastq
 --- !DatabaseQuery
 name: relateMicroarrayToPersonalisSequencing
 cypher: "MATCH (seq:PersonalisSequencing {sample: $sample}) WITH seq MATCH (microarray:Microarray) WHERE microarray.uri=$uri MERGE (seq)-[rel:GENERATED]->(micro) RETURN seq, rel, micro"
@@ -78,28 +78,28 @@ parameters:
   uri: str
   sample: str
 write_transaction: true
-split_results: false
+aggregate_results: false
 publish_to: 
   - TOPIC_TRIGGERS
 returns:
-  pattern: relationship
-  start: PersonalisSequencing
-  relationship: GENERATED
-  end: Microarray
+  -
+    start: PersonalisSequencing
+    relationship: GENERATED
+    end: Microarray
 --- !DatabaseQuery
 name: relatePersonalisSequencingToMicroarrays
 cypher: "MATCH (seq:PersonalisSequencing), (micro:Microarray) WHERE seq.sample=$sample AND micro.sample=seq.sample MERGE (seq)-[rel:GENERATED]->(micro) RETURN seq, rel, micro"
 parameters:
   sample: str
 write_transaction: true
-split_results: false
+aggregate_results: false
 publish_to: 
   - TOPIC_TRIGGERS
 returns:
-  pattern: relationship
-  start: PersonalisSequencing
-  relationship: GENERATED
-  end: Microarray
+  -
+    start: PersonalisSequencing
+    relationship: GENERATED
+    end: Microarray
 --- !DatabaseQuery
 name: relateChecksumToPersonalisSequencing
 cypher: "MATCH (seq:PersonalisSequencing {sample: $sample}) WITH seq MATCH (checksum:Checksum) WHERE checksum.uri=$uri MERGE (seq)-[rel:GENERATED]->(checksum) RETURN seq, rel, checksum"
@@ -107,25 +107,25 @@ parameters:
   uri: str
   sample: str
 write_transaction: true
-split_results: false
+aggregate_results: false
 publish_to: 
   - TOPIC_TRIGGERS
 returns:
-  pattern: relationship
-  start: PersonalisSequencing
-  relationship: GENERATED
-  end: Checksum
+  -
+    start: PersonalisSequencing
+    relationship: GENERATED
+    end: Checksum
 --- !DatabaseQuery
 name: relatePersonalisSequencingToChecksum
 cypher: "MATCH (seq:PersonalisSequencing), (checksum:Checksum) WHERE seq.sample=$sample, checksum.sample=seq.sample MERGE (seq)-[rel:GENERATED]->(checksum) RETURN seq, rel, checksum"
 parameters:
   sample: str
 write_transaction: true
-split_results: false
+aggregate_results: false
 publish_to: 
   - TOPIC_TRIGGERS
 returns:
-  pattern: relationship
-  start: PersonalisSequencing
-  relationship: GENERATED
-  end: Checksum
+  -
+    start: PersonalisSequencing
+    relationship: GENERATED
+    end: Checksum

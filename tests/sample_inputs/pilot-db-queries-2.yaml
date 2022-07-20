@@ -7,7 +7,7 @@ cypher: 'MATCH (fastq:Fastq)<-[]-(:PersonalisSequencing)<-[]-(s:Sample)<-[]-(:Pe
 required_parameters:
   sample: str
 write_transaction: true
-split_results: true
+aggregate_results: false
 publish_to: 
   - TOPIC_TRIGGERS
 indexes:
@@ -30,7 +30,7 @@ cypher: 'MATCH (seq:PersonalisSequencing)
 required_parameters:
   sample: str
 write_transaction: true
-split_results: false
+aggregate_results: false
 publish_to: 
   - TOPIC_TRIGGERS
 indexes:
