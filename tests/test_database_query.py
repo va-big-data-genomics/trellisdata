@@ -12,7 +12,7 @@ cypher: 'MATCH (gvcf:Gvcf)<-[:GENERATED]-(step:CromwellStep)-[:GENERATED]->(tbi:
 required_parameters:
   tbi_id: str
 write_transaction: true
-split_results: false
+aggregate_results: false
 publish_to: 
 - TOPIC_TEST_FUNCTION
 indexes:
@@ -31,7 +31,7 @@ cypher: 'MATCH (gvcf:Gvcf)<-[:GENERATED]-(step:CromwellStep)-[:GENERATED]->(tbi:
 required_parameters:
   cromwell_id: str
 write_transaction: true
-split_results: false
+aggregate_results: false
 publish_to: 
 - TOPIC_TEST_FUNCTION
 indexes:
@@ -54,7 +54,7 @@ cypher: 'MATCH (gvcf:Gvcf)<-[:GENERATED]-(step:CromwellStep)-[:GENERATED]->(tbi:
 required_parameters:
   cromwell_id: str
 write_transaction: true
-split_results: false
+aggregate_results: false
 publish_to: 
 - TOPIC_TEST_FUNCTION
 indexes:
@@ -74,7 +74,7 @@ cypher: 'MATCH (fastq:Fastq)<-[]-(:PersonalisSequencing)<-[]-(s:Sample)<-[]-(:Pe
 required_parameters:
   sample: str
 write_transaction: true
-split_results: false
+aggregate_results: false
 publish_to: 
 - TOPIC_TRIGGERS
 indexes:
@@ -121,7 +121,7 @@ class TestDatabaseQuery(TestCase):
             publish_to = publish_to,
             returns = returns,
             active = True,
-            split_results = False)
+            aggregate_results = False)
 
 		assert custom_query.name == name
 		assert custom_query.cypher == cypher
@@ -143,7 +143,7 @@ class TestDatabaseQuery(TestCase):
 		assert query.cypher
 		assert query.required_parameters
 		assert query.write_transaction
-		assert query.split_results
+		assert query.aggregate_results
 		assert query.publish_to
 		assert query.indexes
 		assert query.returns
@@ -169,7 +169,7 @@ class TestDatabaseQuery(TestCase):
 			publish_to = publish_to,
 			returns = returns,
 			active = True,
-			split_results = False)
+			aggregate_results = False)
 
 		assert custom_query.required_parameters['AlignmentCoverage'] == "str"
 		assert custom_query.required_parameters['AssayType'] == "str"
@@ -189,7 +189,7 @@ class TestDatabaseQuery(TestCase):
             publish_to = publish_to,
             active = True,
             returns = None,
-            split_results = False)
+            aggregate_results = False)
 
 		#pdb.set_trace()
 
@@ -197,7 +197,7 @@ class TestDatabaseQuery(TestCase):
 		assert custom_query.cypher == cypher
 		assert custom_query.publish_to == publish_to
 		assert custom_query.active == True
-		assert custom_query.split_results == False
+		assert custom_query.aggregate_results == False
 
 	@classmethod
 	def test_write_query_to_file(cls):

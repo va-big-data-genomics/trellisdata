@@ -135,8 +135,6 @@ class TestQueryRequestWriter(TestCase):
 		header = message['header']
 		body = message['body']
 
-		#pdb.set_trace()
-
 		# Check header values
 		assert message['header']['messageKind'] == "queryRequest"
 		assert message['header']['sender'] == cls.sender
@@ -289,7 +287,7 @@ class TestQueryRequestReader(TestCase):
 			    		'custom': True, 
 			    		'cypher': "MERGE (node:Fastq { uri: $uri, crc32c: $crc32c }) ON CREATE SET node.nodeCreated = timestamp(), node.nodeIteration = 'initial', node.bucket = $bucket, node.componentCount = $componentCount, node.contentType = $contentType, node.crc32c = $crc32c, node.customTime = $customTime, node.etag = $etag, node.eventBasedHold = $eventBasedHold, node.generation = $generation, node.id = $id, node.kind = $kind, node.mediaLink = $mediaLink, node.metadata = $metadata, node.metageneration = $metageneration, node.name = $name, node.selfLink = $selfLink, node.size = $size, node.storageClass = $storageClass, node.temporaryHold = $temporaryHold, node.timeCreated = $timeCreated, node.timeStorageClassUpdated = $timeStorageClassUpdated, node.updated = $updated, node.trellisUuid = $trellisUuid, node.path = $path, node.dirname = $dirname, node.basename = $basename, node.extension = $extension, node.filetype = $filetype, node.gitCommitHash = $gitCommitHash, node.gitVersionTag = $gitVersionTag, node.uri = $uri, node.timeCreatedEpoch = $timeCreatedEpoch, node.timeUpdatedEpoch = $timeUpdatedEpoch, node.timeCreatedIso = $timeCreatedIso, node.timeUpdatedIso = $timeUpdatedIso, node.plate = $plate, node.sample = $sample, node.matePair = $matePair, node.readGroup = $readGroup ON MATCH SET node.nodeIteration = 'merged', node.size = $size, node.timeUpdatedEpoch = $timeUpdatedEpoch, node.timeUpdatedIso = $timeUpdatedIso, node.timeStorageClassUpdated = $timeStorageClassUpdated, node.updated = $updated, node.id = $id, node.crc32c = $crc32c, node.generation = $generation, node.storageClass = $storageClass RETURN node", 
 			    		'writeTransaction': True,
-			    		'splitResults': False,
+			    		'aggregateResults': False,
 			    		'publishTo': 'check-triggers', 
 			    		'returns': {'node': 'node'}
 			    }
@@ -365,8 +363,7 @@ class TestQueryResponseWriter(TestCase):
 					previous_event_id = cls.previous_event_id,
 					query_name = "create-alice",
 					graph = cls.single_node_graph,
-					result_summary = cls.result_summary,
-					pattern = "node")
+					result_summary = cls.result_summary)
 		messages = list(response.generate_separate_entity_jsons())
 		assert len(messages) == 1
 
@@ -394,13 +391,20 @@ class TestQueryResponseWriter(TestCase):
 					previous_event_id = cls.previous_event_id,
 					query_name = "create-alice",
 					graph = multi_node_graph,
-					result_summary = cls.result_summary,
-					pattern = "node")
+					result_summary = cls.result_summary)
 		messages = list(response.generate_separate_entity_jsons())
 		assert len(messages) == 2
 
 		for message in messages:
 			assert len(message['body']['nodes']) == 1
+
+			node = message['body']['nodes'][0]
+			if node['id'] == 1:
+				assert node['labels'] == ['Person']
+				assert node['properties'] == {"name": "Alice", "age": 33}
+			elif node['id'] == 2:
+				assert node['labels'] == ['Person']
+				assert node['properties'] == {"name": "Nick", "age": 27}
 
 	@classmethod
 	def test_aggregate_multiple_nodes(cls):
@@ -426,8 +430,7 @@ class TestQueryResponseWriter(TestCase):
 					previous_event_id = cls.previous_event_id,
 					query_name = "create-alice",
 					graph = multi_node_graph,
-					result_summary = cls.result_summary,
-					pattern = "node")
+					result_summary = cls.result_summary)
 		message = response.return_json_with_all_nodes()
 
 		assert len(message['body']['nodes']) == 2
@@ -466,16 +469,13 @@ class TestQueryResponseWriter(TestCase):
 					previous_event_id = cls.previous_event_id,
 					query_name = "create-alice",
 					graph = multi_node_graph,
-					result_summary = cls.result_summary,
-					pattern = "relationship")
+					result_summary = cls.result_summary)
 		messages = list(response.generate_separate_entity_jsons())
 		assert len(messages) == 2
 
 		for message in messages:
 			assert len(message['body']['nodes']) == 0
 			assert len(message['body']['relationship']) == 5
-
-		#pdb.set_trace()
 
 	@classmethod
 	def test_aggregate_multiple_rels(cls):
@@ -513,8 +513,7 @@ class TestQueryResponseWriter(TestCase):
 					previous_event_id = cls.previous_event_id,
 					query_name = "create-alice",
 					graph = multi_node_graph,
-					result_summary = cls.result_summary,
-					pattern = "relationship")
+					result_summary = cls.result_summary)
 		match_pattern = re.escape("Cannot use this method to publish relationships. Use 'generate_separate_entity_jsons()' instead.")
 		with pytest.raises(ValueError, match=match_pattern):
 			messages = list(response.return_json_with_all_nodes())
