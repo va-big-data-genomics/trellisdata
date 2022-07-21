@@ -47,13 +47,13 @@ class TriggerController:
         response_pattern = self._determine_result_pattern(query_response)
 
         if response_pattern == 'node':
-            print("Evaluating node triggers.")
+            logging.info("#> Evaluating node triggers.")
             activated_triggers = self._evaluate_node_triggers(query_response)
         elif response_pattern == 'relationship':
-            print("Evaluating relationship triggers.")
+            logging.info("#> Evaluating relationship triggers.")
             activated_triggers = self._evaluate_relationship_triggers(query_response)
         else:
-            raise ValueError(f"Response pattern '{response_pattern}' is not a supported trigger pattern.")
+            raise ValueError(f"#> Response pattern '{response_pattern}' is not a supported trigger pattern.")
         return activated_triggers
 
     def _determine_result_pattern(self, query_response):
@@ -79,17 +79,16 @@ class TriggerController:
         node_labels = node['labels']
 
         # New logic to handle multiple labels
-        relevant_triggers = []
+        start_triggers = []
         for label in node_labels:
-            node_triggers = self.node_triggers.get(label)
-            if node_triggers:
-                relevant_triggers.extend(node_triggers)
+            label_triggers = self.node_triggers.get(label)
+            if label_triggers:
+                start_triggers.extend(label_triggers)
         # Remove duplicates
-        relevant_triggers = set(relevant_triggers)
-        #relevant_triggers = self.node_triggers[node_label] # Old single-label code
+        candidate_triggers = set(start_triggers)
 
         activated_triggers = []
-        for trigger in relevant_triggers:
+        for trigger in candidate_triggers:
             node_properties = node['properties']
 
             query_parameters = self._get_node_trigger_parameters(
@@ -119,16 +118,15 @@ class TriggerController:
         start_labels = relationship['start_node']['labels']
 
         # Get relevant triggers
-        #relevant_triggers = self.relationship_triggers[start_label]
-        #candidate_triggers = []
+        start_triggers = []
         for label in start_labels:
-            start_triggers = self.relationship_triggers.get(label)
-            #if start_triggers:
-            #    candidate_triggers.extend(start_triggers)
+            label_triggers = self.relationship_triggers.get(label)
+            if label_triggers:
+                start_triggers.extend(label_triggers)
         candidate_triggers = set(start_triggers)
 
         trigger_names = [trigger.name for trigger in candidate_triggers]
-        logging.info(f"Triggers that match start node '{start_labels}': {trigger_names}.")
+        logging.info(f"#> Triggers that match start node '{start_labels}': {trigger_names}.")
 
         end_labels = relationship['end_node']['labels']
         relationship_type = relationship['type']
@@ -154,9 +152,8 @@ class TriggerController:
                     rel_properties)
                 trigger_tuple = (trigger, parameters)
                 activated_triggers.append(trigger_tuple)
-                logging.info(f"Trigger {trigger.name} activated.")
             else:
-                logging.info(f"{trigger.name} not activated. " +
+                logging.debug(f"#> {trigger.name} not activated. " +
                     f"Triple relationship {relationship_type} does not match {trigger.relationship['type']} " +
                     f"or trigger label '{trigger.end['label']}' not in end node labels: {end_labels}.")
         return activated_triggers
@@ -208,40 +205,40 @@ class TriggerController:
 
     def _validate_trigger_content(self, trigger):
         if not hasattr(trigger, "name"):
-            raise AttributeError(f"Trigger is not named.")
+            raise AttributeError(f"#> Trigger is not named.")
 
-        logging.info(f"Validating trigger: {trigger.name}.")
+        logging.debug(f"#> Validating trigger: {trigger.name}.")
         
         if not hasattr(trigger, "pattern"):
-            raise AttributeError(f"Trigger is missing an activation pattern.")
+            raise AttributeError(f"#> Trigger is missing an activation pattern.")
     
         if not trigger.pattern in self.supported_patterns:
-            raise ValueError(f"Trigger pattern '{trigger.pattern}' not in supported patterns: {self.supported_patterns}.")
+            raise ValueError(f"#> Trigger pattern '{trigger.pattern}' not in supported patterns: {self.supported_patterns}.")
         
         try:
             label = trigger.start['label']
             if not label:
-                raise ValueError(f"Trigger start node missing label.")
+                raise ValueError(f"#> Trigger start node missing label.")
         except:
-            raise ValueError(f"Trigger start node missing label.")
+            raise ValueError(f"#> Trigger start node missing label.")
 
         if not hasattr(trigger, "query"):
-            raise AttributeError(f"Trigger is missing query.")
+            raise AttributeError(f"#> Trigger is missing query.")
 
         if hasattr(trigger, "relationship") or hasattr(trigger, "end"):
             try:
                 rel_type = trigger.relationship["type"]
                 if not rel_type:
-                    raise ValueError(f"Trigger relationship type missing.")
+                    raise ValueError(f"#> Trigger relationship type missing.")
             except:
-                raise ValueError(f"Trigger relationship type missing.")
+                raise ValueError(f"#> Trigger relationship type missing.")
 
             try:
                 label = trigger.end["label"]
                 if not label:
-                    raise ValueError(f"Trigger end node missing label.")
+                    raise ValueError(f"#> Trigger end node missing label.")
             except:
-                raise ValueError(f"Trigger end node missing label.")
+                raise ValueError(f"#> Trigger end node missing label.")
 
 
 class DatabaseTrigger(yaml.YAMLObject):

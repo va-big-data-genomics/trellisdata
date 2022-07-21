@@ -293,7 +293,7 @@ class MessageReader(object):
         # Not sure what cases caused me to add this to db-query,
         # but keeping it in because I don't see any harm
         if type(data) == str:
-            logging.warn("Message data not correctly loaded as JSON. " +
+            logging.warn("#> Message data not correctly loaded as JSON. " +
                          "Used eval to convert from string.")
             data = eval(data)
 
