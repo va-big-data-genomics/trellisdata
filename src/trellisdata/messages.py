@@ -183,6 +183,7 @@ class QueryResponseWriter(MessageWriter):
         else:
             raise ValueError(f"Pattern '{self.pattern}' not in supported patterns: {self.supported_patterns}.")
 
+    """Deprecated (I think)
     def _format_json_message(self, nodes, relationship, result_summary):
 
         if relationship:
@@ -203,6 +204,7 @@ class QueryResponseWriter(MessageWriter):
            }
         }
         return message
+    """
 
     def _get_result_summary_dict(self, result_summary):
         # Create a copy of the dict so that metadata and server
@@ -270,12 +272,28 @@ class JobCreatedWriter(MessageWriter):
                  *,
                  sender,
                  seed_id,
-                 previous_event_id):
+                 previous_event_id,
+                 job_dict):
 
-        self.message_kind = "jobCreated"
+        self.message_kind = 'jobCreated'
+
+        super().__init__(
+                         sender,
+                         seed_id,
+                         previous_event_id)
+
+        self.job_dict = job_dict
 
     def format_json_message(self):
-        pass
+        message = super().format_json_header()
+
+        body = {
+           "body": {
+                    "jobDict": self.job_dict)
+            }
+        }
+        message.update(body)
+        return message
 
 
 class MessageReader(object):
@@ -357,7 +375,17 @@ class QueryResponseReader(MessageReader):
 
 
 class JobCreatedReader(MessageReader):
-    pass
+    def __init__(
+                 self,
+                 context,
+                 event):
+
+        super().__init__(context, event)
+
+        if self.message_kind != 'jobCreated':
+            return ValueError("Message is not of type 'jobCreated'.")
+
+        self.job_dict = self.body['jobDict']
 
 
 """
