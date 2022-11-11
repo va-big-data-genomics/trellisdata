@@ -189,3 +189,19 @@ def get_seconds_from_epoch(datetime_obj):
     from_epoch = datetime_obj - datetime(1970, 1, 1, tzinfo=pytz.UTC)
     from_epoch_seconds = from_epoch.total_seconds()
     return from_epoch_seconds
+
+def make_standard_time_fields():
+    """
+    Return
+        (dict): Times in iso (str) and from-epoch (int) formats
+    """
+    datetime_created = datetime.now(pytz.UTC)
+
+    time_created_epoch = get_seconds_from_epoch(datetime_created)
+    time_created_iso = datetime_created.isoformat()
+
+    time_fields = {
+                   'timeCreatedEpoch': time_created_epoch,
+                   'timeCreatedIso': time_created_iso,
+    }
+    return time_fields
