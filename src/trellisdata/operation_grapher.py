@@ -30,8 +30,8 @@ class OperationGrapher:
 	def add_query_nodes_to_neo4j(self):
 		query_nodes = []
 		for query in self.queries:
-			# Add support for a multiple return patterns,
-			# i.e. distinct (:label1)-[:rel]->(:label2) patterns
+			publish_to = query.publish_to
+
 			for pattern in query.returns:
 				# Only exists for relationship patterns
 				start = pattern['start']
@@ -52,7 +52,8 @@ class OperationGrapher:
 									pattern = pattern,
 									start = start,
 									relationship = relationship,
-									end = end)
+									end = end,
+									publish_to = publish_to)
 				query_nodes.append(query_node)
 		return query_nodes
 
@@ -87,11 +88,11 @@ class OperationGrapher:
 	def connect_nodes(self):
 			with self.neo4j_driver.session() as session:
 				print("Connecting relationship based operations")
-				result_summary = session.write_transaction(self._connect_relationship_operations)
+				result_summary = session.write_transaction(self._connect_rel_query_results_to_trigger)
 				print(result_summary.counters)
 
 				print("Connecting node based operations")
-				result_summary = session.write_transaction(self._connect_node_operations)
+				result_summary = session.write_transaction(self._connect_node_query_results_to_trigger)
 				print(result_summary.counters)
 
 				print("Connecting triggers to activated queries")
@@ -174,19 +175,21 @@ class OperationGrapher:
 				raise ValueError(f"Trigger {trigger.name} '{field}' is not of type {value_type}.")
 
 	@staticmethod
-	def _add_query_node_to_neo4j(tx, name, pattern, start, relationship, end):
+	def _add_query_node_to_neo4j(tx, name, pattern, start, relationship, end, publish_to):
 		result = tx.run(
 						"MERGE (n:Query {name: $name}) "
-						"SET n.output_pattern = $pattern, "
+						"SET n.outputPattern = $pattern, "
 						"n.start = $start, " 
 						"n.relationship = $relationship, "
-						"n.end = $end "
+						"n.end = $end, "
+						"n.publishTo = $publish_to "
 						"RETURN n",
 						name = name,
 						pattern = pattern,
 						start = start,
 						relationship = relationship,
-						end = end)
+						end = end,
+						publish_to = publish_to)
 		return result.single()[0]
 
 	@staticmethod
@@ -209,26 +212,28 @@ class OperationGrapher:
 
 	# Run query to connect relationship based operations
 	@staticmethod
-	def _connect_relationship_operations(tx):
+	def _connect_rel_query_results_to_trigger(tx):
 		result = tx.run(
 						"MATCH (q:Query), (t:Trigger) "
-						"WHERE q.output_pattern = 'relationship' "
+						"WHERE q.outputPattern = 'relationship' "
 						"AND t.pattern = 'relationship' "
 						"AND q.start = t.start "
 						"AND q.relationship = t.relationship "
 						"AND q.end = t.end "
+						"AND 'TOPIC_TRIGGERS' IN q.publishTo "
 						"MERGE (q)-[r:ACTIVATES]->(t) "
 						"RETURN r")
 		return result.consume()
 
 	# Run query to connect node based operations
 	@staticmethod
-	def _connect_node_operations(tx):
+	def _connect_node_query_results_to_trigger(tx):
 		result = tx.run(
 						"MATCH (q:Query), (t:Trigger) "
-						"WHERE q.output_pattern = 'node' "
+						"WHERE q.outputPattern = 'node' "
 						"AND t.pattern = 'node' "
 						"AND q.start = t.start "
+						"AND 'TOPIC_TRIGGERS' IN q.publishTo "
 						"MERGE (q)-[r:ACTIVATES]->(t) "
 						"RETURN r")
 		return result.consume()
