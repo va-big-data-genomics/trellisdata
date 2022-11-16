@@ -5,7 +5,6 @@ import trellisdata as trellis
 
 from unittest import TestCase
 
-""" Deactivting until I can replace db dependency
 class TestOperationGrapher(TestCase):
 
 	## Get query response
@@ -38,7 +37,7 @@ class TestOperationGrapher(TestCase):
 			assert isinstance(trigger, trellis.DatabaseTrigger)
 		
 		assert len(grapher.queries) == 8
-		assert len(grapher.triggers) == 10
+		assert len(grapher.triggers) == 8
 
 		for trigger in grapher.triggers:
 			if trigger.pattern == 'node':
@@ -61,7 +60,7 @@ class TestOperationGrapher(TestCase):
 			neo4j_driver = cls.driver)
 		query_nodes = grapher.add_query_nodes_to_neo4j()
 
-		assert len(query_nodes) == 8
+		assert len(query_nodes) == 10
 
 	@classmethod
 	def test_add_trigger_nodes_to_neo4j(cls):
@@ -72,7 +71,7 @@ class TestOperationGrapher(TestCase):
 
 		trigger_nodes = grapher.add_trigger_nodes_to_neo4j()
 
-		assert len(trigger_nodes) == 10
+		assert len(trigger_nodes) == 8
 
 	@classmethod
 	def test_connect_relationship_based_operations(cls):
@@ -115,4 +114,3 @@ class TestOperationGrapher(TestCase):
 		with cls.driver.session() as session:
 			result_summary = session.write_transaction(
 								grapher._connect_triggers_to_activated_queries)
-"""

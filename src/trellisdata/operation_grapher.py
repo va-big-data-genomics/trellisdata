@@ -9,31 +9,50 @@ class OperationGrapher:
 
 	def __init__(self, query_document, trigger_document, neo4j_driver):
 		self.neo4j_driver = neo4j_driver
+		self.queries = []
+		self.triggers = []
 
 		# Read in the queries
 		with open(query_document, 'r') as query_file_handle:
 			self.queries = list(yaml.load_all(query_file_handle, Loader=yaml.FullLoader))
+			for query in self.queries:
+				# Will raise error on failure
+				self._is_query_valid(query)
+			
 		# Read in the triggers
 		with open(trigger_document, 'r') as trigger_file_handle:
 			self.triggers = list(yaml.load_all(trigger_file_handle, Loader=yaml.FullLoader))
+			for trigger in self.triggers:
+				self._is_trigger_valid(trigger)
+
 
 	# Create a node for each database query with properties describing outputs
 	def add_query_nodes_to_neo4j(self):
 		query_nodes = []
 		for query in self.queries:
+			# Add support for a multiple return patterns,
+			# i.e. distinct (:label1)-[:rel]->(:label2) patterns
+			for pattern in query.returns:
+				# Only exists for relationship patterns
+				start = pattern['start']
+				relationship = pattern.get('relationship')
+				end = pattern.get('end')
+				
+				if relationship and end:
+					pattern = 'relationship'
+				elif not relationship and not end:
+					pattern = 'node'
+				else:
+					return ValueError("Query return pattern is not valid for {query.name}.")
 
-			# Only exists for relationship patterns
-			relationship = query.returns.get('relationship')
-			end = query.returns.get('end')
-
-			with self.neo4j_driver.session() as session:
-				query_node = session.write_transaction(
-								self._add_query_node_to_neo4j,
-								name = query.name,
-								pattern = query.returns['pattern'],
-								start = query.returns['start'],
-								relationship = relationship,
-								end = end)
+				with self.neo4j_driver.session() as session:
+					query_node = session.write_transaction(
+									self._add_query_node_to_neo4j,
+									name = query.name,
+									pattern = pattern,
+									start = start,
+									relationship = relationship,
+									end = end)
 				query_nodes.append(query_node)
 		return query_nodes
 
@@ -78,6 +97,81 @@ class OperationGrapher:
 				print("Connecting triggers to activated queries")
 				result_summary = session.write_transaction(self._connect_triggers_to_activated_queries)
 				print(result_summary.counters)
+
+	@staticmethod
+	def _is_query_valid(query):
+		required_value_fields = {
+			"name": str,
+			"cypher": str,
+			"write_transaction": bool,
+			"aggregate_results": bool,
+		}
+		optional_value_fields = {
+			"parameters": dict,
+			"publish_to": list,
+			"indexes": dict,
+			"returns": list
+		}
+
+		if not hasattr(query, "name"):
+			raise AttributeError("Query is missing name.")
+
+		# Code to handle fields that require values
+		for field, value_type in required_value_fields.items():
+			if not hasattr(query, field):
+				raise AttributeError(f"Query {query.name} is missing '{field}'.")
+			value = getattr(query, field)
+			if value == None:
+				raise ValueError(f"Query {query.name} is missing value for required field '{field}'.")
+			if not isinstance(value, value_type):
+				raise ValueError(f"Query {query.name} '{field}' is not of type {value_type}.")
+
+		# Code to handle fields that do not require values
+		for field, value_type in optional_value_fields.items():
+			if not hasattr(query, field):
+				continue
+			value = getattr(query, field)
+			if value == None:
+				continue
+			if not isinstance(value, value_type):
+				raise ValueError(f"Query {query.name} '{field}' is not of type {value_type}.")
+
+	@staticmethod
+	def _is_trigger_valid(trigger):
+		required_value_fields = {
+			"name": str,
+			"pattern": str,
+			"start": dict,
+			"query": str
+		}
+
+		optional_value_fields = {
+			"relationship": dict,
+			"end": dict
+		}
+
+		if not hasattr(trigger, "name"):
+			raise AttributeError("Trigger is missing name.")
+
+		# Code to handle fields that require values
+		for field, value_type in required_value_fields.items():
+			if not hasattr(trigger, field):
+				raise AttributeError(f"Trigger {trigger.name} is missing '{field}'.")
+			value = getattr(trigger, field)
+			if value == None:
+				raise ValueError(f"Trigger {trigger.name} is missing value for required field '{field}'.")
+			if not isinstance(value, value_type):
+				raise ValueError(f"Trigger {trigger.name} '{field}' is not of type {value_type}.")
+
+		# Code to handle fields that do not require values
+		for field, value_type in optional_value_fields.items():
+			if not hasattr(trigger, field):
+				continue
+			value = getattr(trigger, field)
+			if value == None:
+				raise ValueError(f"Trigger {trigger.name} is missing value for optional field '{field}'.")
+			if not isinstance(value, value_type):
+				raise ValueError(f"Trigger {trigger.name} '{field}' is not of type {value_type}.")
 
 	@staticmethod
 	def _add_query_node_to_neo4j(tx, name, pattern, start, relationship, end):
