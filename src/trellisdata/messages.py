@@ -95,8 +95,8 @@ class QueryResponseWriter(MessageWriter):
                  previous_event_id,
                  query_name,
                  result_summary,
-                 graph):
-                 #pattern):
+                 graph,
+                 job_request=None):
 
         super().__init__(
                          sender,
@@ -110,6 +110,7 @@ class QueryResponseWriter(MessageWriter):
         self.nodes = []
         self.relationships = []
         self.supported_patterns = ['node', 'relationship']
+        self.job_request = job_request
 
         if self.graph:
             for node in self.graph.nodes:
@@ -289,7 +290,7 @@ class JobCreatedWriter(MessageWriter):
 
         body = {
            "body": {
-                    "jobDict": self.job_dict)
+                    "jobDict": self.job_dict
             }
         }
         message.update(body)
