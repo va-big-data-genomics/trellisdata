@@ -133,6 +133,7 @@ class QueryResponseWriter(MessageWriter):
         body = {
            "body": {
                     "queryName": self.query_name,
+                    "jobRequest": self.job_request,
                     "nodes": [self._get_node_dict(node) for node in self.nodes],
                     # Note: Each relationship triple should be delivered separately using 
                     # the generate_individual_jsons() method.
@@ -153,6 +154,7 @@ class QueryResponseWriter(MessageWriter):
                 body = {
                         "body": {
                             "queryName": self.query_name,
+                            "jobRequest": self.job_request,
                             "nodes": [self._get_node_dict(node)],
                             "relationship": {},
                             "resultSummary": summary_dict
@@ -160,16 +162,13 @@ class QueryResponseWriter(MessageWriter):
                 }
                 message.update(body)
                 yield message
-                #yield self._format_json_message(
-                #                                nodes = [node],
-                #                                relationship = {},
-                #                                result_summary = summary_dict)
         elif self.pattern == "relationship":
             for relationship in self.relationships:
                 message = super().format_json_header()
                 body = {
                         "body": {
                             "queryName": self.query_name,
+                            "jobRequest": self.job_request,
                             "nodes": [],
                             "relationship": self._get_relationship_dict(relationship),
                             "resultSummary": summary_dict
@@ -177,35 +176,8 @@ class QueryResponseWriter(MessageWriter):
                 }
                 message.update(body)
                 yield message
-                #yield self._format_json_message(
-                #                                nodes = [],
-                #                                relationship = relationship,
-                #                                result_summary = summary_dict)
         else:
             raise ValueError(f"Pattern '{self.pattern}' not in supported patterns: {self.supported_patterns}.")
-
-    """Deprecated (I think)
-    def _format_json_message(self, nodes, relationship, result_summary):
-
-        if relationship:
-            relationship_dict = self._get_relationship_dic(relationship)
-        message = {
-           "header": {
-                      "messageKind": self.message_kind,
-                      "sender": self.sender,
-                      "seedId": self.seed_id,
-                      "previousEventId": self.previous_event_id,
-           },
-           "body": {
-                    "queryName": self.query_name,
-                    "nodes": [self._get_node_dict(node) for node in nodes],
-                    "relationship": self._get_relationship_dict(relationship),
-                    "resultSummary": result_summary,
-                    #"pattern": self.pattern
-           }
-        }
-        return message
-    """
 
     def _get_result_summary_dict(self, result_summary):
         # Create a copy of the dict so that metadata and server
@@ -372,7 +344,7 @@ class QueryResponseReader(MessageReader):
         self.result_summary = self.body['resultSummary']
         self.nodes = self.body['nodes']
         self.relationship = self.body['relationship']
-        #self.pattern = self.body['pattern']
+        self.job_request = self.body['jobRequest']
 
 
 class JobCreatedReader(MessageReader):
