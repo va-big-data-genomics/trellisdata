@@ -125,7 +125,12 @@ class Struct:
         self.__dict__.update(entries)
 
 
-def make_unique_task_id(nodes, datetime_stamp):
+def _get_datetime_stamp():
+    now = datetime.now()
+    datestamp = now.strftime("%y%m%d-%H%M%S-%f")[:-3]
+    return datestamp
+
+def make_unique_task_id(nodes):
     # Create pretty-unique hash value based on input nodes
     # https://www.geeksforgeeks.org/ways-sort-list-dictionaries-values-python-using-lambda-function/
     sorted_nodes = sorted(nodes, key = lambda i: i['id'])
@@ -133,6 +138,7 @@ def make_unique_task_id(nodes, datetime_stamp):
     nodes_hash = hashlib.sha256(nodes_str.encode('utf-8')).hexdigest()
     print(nodes_hash)
     trunc_nodes_hash = str(nodes_hash)[:8]
+    datetime_stamp = _get_datetime_stamp()
     task_id = f"{datetime_stamp}-{trunc_nodes_hash}"
     return(task_id, trunc_nodes_hash)
 
@@ -205,3 +211,17 @@ def make_standard_time_fields():
                    'timeCreatedIso': time_created_iso,
     }
     return time_fields
+
+def get_datetime_iso8601(date_string):
+    """ Convert ISO 8601 date strings to datetime objects.
+
+    Google datetime format: https://tools.ietf.org/html/rfc3339
+    ISO 8601 standard format: https://en.wikipedia.org/wiki/ISO_8601
+
+    Args:
+        date_string (str): Date in ISO 8601 format
+    Returns
+        (datetime.datetime): Datetime objects
+    """
+    return iso8601.parse_date(date_string)
+
