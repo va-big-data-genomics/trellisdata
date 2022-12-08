@@ -1,3 +1,5 @@
+import yaml
+
 class JobLauncher(yaml.YAMLObject):
 	yaml_tag = u'!JobLauncher'
 	def __init__(
