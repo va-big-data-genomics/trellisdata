@@ -17,7 +17,12 @@ returns:
     end: Fastq
 --- !DatabaseQuery
 name: mergeBiologicalNodes
-cypher: "MATCH (s:PersonalisSequencing) WHERE s.sample = $sample MERGE (s)<-[:WAS_USED_BY {ontology: 'provenance'}]-(:Sample {sample: s.sample})<-[:GENERATED {ontology:'provenance'}]-(person:Person {sample: s.sample})-[has:HAS_BIOLOGICAL_OME {ontology:'bioinformatics'}]->(genome:Genome {sample: s.sample}) RETURN person, has, genome"
+cypher: 'MATCH (seq:PersonalisSequencing)
+  WHERE seq.sample = $sample
+  MERGE (seq)<-[used:WAS_USED_BY {ontology: ''provenance''}]-(sample:Sample {sample: seq.sample})
+  <-[generated:GENERATED {ontology:''provenance''}]-(person:Person {sample: seq.sample})
+  -[has:HAS_BIOLOGICAL_OME {ontology:''bioinformatics''}]->(genome:Genome {sample: seq.sample})
+  RETURN seq, used, sample, generated, person, has, genome'
 required_parameters:
   sample: str
 write_transaction: true
@@ -28,10 +33,15 @@ indexes:
   Sample:
     - sample
 returns:
-  -
-    start: Person
+  - start: Person
     relationship: HAS_BIOLOGICAL_OME
     end: Genome
+  - start: Sample
+    relationship: WAS_USED_BY
+    end: PersonalisSequencing
+  - start: Person
+    relationship: GENERATED
+    end: Sample
 --- !DatabaseQuery
 name: relateFastqToPersonalisSequencing
 cypher: "MATCH (seq:PersonalisSequencing), (fastq:Fastq) WHERE fastq.uri=$uri AND seq.sample=fastq.sample MERGE (seq)-[rel:GENERATED]->(fastq) RETURN seq, rel, fastq"
@@ -55,7 +65,7 @@ returns:
 --- !DatabaseQuery
 name: relatePersonalisSequencingToFastqs
 cypher: "MATCH (seq:PersonalisSequencing), (fastq:Fastq) WHERE seq.sample=$sample AND fastq.sample=seq.sample MERGE (seq)-[rel:GENERATED]->(fastq) RETURN seq, rel, fastq"
-parameters:
+required_parameters:
   sample: str
 write_transaction: true
 aggregate_results: false
@@ -74,13 +84,16 @@ returns:
 --- !DatabaseQuery
 name: relateMicroarrayToPersonalisSequencing
 cypher: "MATCH (seq:PersonalisSequencing {sample: $sample}) WITH seq MATCH (microarray:Microarray) WHERE microarray.uri=$uri MERGE (seq)-[rel:GENERATED]->(micro) RETURN seq, rel, micro"
-parameters:
+required_parameters:
   uri: str
   sample: str
 write_transaction: true
 aggregate_results: false
 publish_to: 
   - TOPIC_TRIGGERS
+indexes:
+  PersonalisSequencing:
+    - sample
 returns:
   -
     start: PersonalisSequencing
@@ -89,12 +102,17 @@ returns:
 --- !DatabaseQuery
 name: relatePersonalisSequencingToMicroarrays
 cypher: "MATCH (seq:PersonalisSequencing), (micro:Microarray) WHERE seq.sample=$sample AND micro.sample=seq.sample MERGE (seq)-[rel:GENERATED]->(micro) RETURN seq, rel, micro"
-parameters:
+required_parameters:
   sample: str
 write_transaction: true
 aggregate_results: false
 publish_to: 
   - TOPIC_TRIGGERS
+indexes:
+  PersonalisSequencing:
+    - sample
+  Microarray:
+    - sample
 returns:
   -
     start: PersonalisSequencing
@@ -103,13 +121,16 @@ returns:
 --- !DatabaseQuery
 name: relateChecksumToPersonalisSequencing
 cypher: "MATCH (seq:PersonalisSequencing {sample: $sample}) WITH seq MATCH (checksum:Checksum) WHERE checksum.uri=$uri MERGE (seq)-[rel:GENERATED]->(checksum) RETURN seq, rel, checksum"
-parameters:
+required_parameters:
   uri: str
   sample: str
 write_transaction: true
 aggregate_results: false
 publish_to: 
   - TOPIC_TRIGGERS
+indexes:
+  PersonalisSequencing:
+    - sample
 returns:
   -
     start: PersonalisSequencing
@@ -118,14 +139,54 @@ returns:
 --- !DatabaseQuery
 name: relatePersonalisSequencingToChecksum
 cypher: "MATCH (seq:PersonalisSequencing), (checksum:Checksum) WHERE seq.sample=$sample, checksum.sample=seq.sample MERGE (seq)-[rel:GENERATED]->(checksum) RETURN seq, rel, checksum"
-parameters:
+required_parameters:
   sample: str
 write_transaction: true
 aggregate_results: false
 publish_to: 
   - TOPIC_TRIGGERS
+indexes:
+  PersonalisSequencing:
+    - sample
+  Checksum:
+    - sample
 returns:
   -
     start: PersonalisSequencing
     relationship: GENERATED
     end: Checksum
+--- !DatabaseQuery
+name: launchFastqToUbam
+cypher: 'MATCH (seq:PersonalisSequencing)-[:GENERATED]->(r1:Fastq)-[rel:HAS_MATE_PAIR]->(r2:Fastq) 
+  WHERE seq.sample = $sample
+  AND r1.readGroup = $read_group
+  AND r2.readGroup = $read_group
+  AND r1.matePair = 1
+  AND r2.matePair = 2 
+  AND NOT (r1)-[:WAS_USED_BY]->(:JobRequest {name: ''fastq-to-ubam''})
+  AND NOT (r2)-[:WAS_USED_BY]->(:JobRequest {name: ''fastq-to-ubam''})
+  CREATE (job_request:JobRequest {name: ''fastq-to-ubam'',
+    sample: $sample,
+    nodeCreated: datetime(),
+    nodeCreatedEpoch: datetime().epochSeconds})
+  WITH r1, rel, r2, job_request 
+  LIMIT 1 
+  MERGE (r1)-[:WAS_USED_BY]->(job_request)
+  MERGE (r2)-[:WAS_USED_BY]->(job_request)
+  RETURN r1, rel, r2'
+required_parameters:
+  sample: str
+  read_group: int
+write_transaction: true
+publish_to:
+  - TOPIC_JOB_LAUNCHER
+indexes:
+  PersonalisSequencing:
+    - sample
+job_request: fastq-to-ubam
+returns:
+  -
+    start: Fastq
+    relationship: HAS_MATE_PAIR
+    end: Fastq
+aggregate_results: false
