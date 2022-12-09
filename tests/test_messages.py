@@ -469,6 +469,7 @@ class TestQueryResponseWriter(TestCase):
 					previous_event_id = cls.previous_event_id,
 					query_name = "create-alice",
 					graph = multi_node_graph,
+					job_request = 'fastq-to-ubam',
 					result_summary = cls.result_summary)
 		messages = list(response.generate_separate_entity_jsons())
 		assert len(messages) == 2
@@ -476,6 +477,7 @@ class TestQueryResponseWriter(TestCase):
 		for message in messages:
 			assert len(message['body']['nodes']) == 0
 			assert len(message['body']['relationship']) == 5
+			assert message['body']['jobRequest'] == 'fastq-to-ubam'
 
 	@classmethod
 	def test_aggregate_multiple_rels(cls):
@@ -518,6 +520,24 @@ class TestQueryResponseWriter(TestCase):
 		with pytest.raises(ValueError, match=match_pattern):
 			messages = list(response.return_json_with_all_nodes())
 
+"""
+class TestJobCreatedWriter(TestCase):
+
+	# Trellis attributes
+	sender = "test-messages"
+	seed_id = 123
+	previous_event_id = 456
+
+	@classmethod
+	def test_create_fq2u_job(cls):
+		job_dict = 
+
+		job_created = trellis.TestJobCreatedWriter(
+			sender = cls.sender,
+			seed_id = cls.seed_id,
+			previous_event_id = cls.seed_id
+			job_dict = )
+"""
 
 class TestQueryResponseReader(TestCase):
 
@@ -531,7 +551,8 @@ class TestQueryResponseReader(TestCase):
 				'previousEventId': 456
 			}, 
 			'body': {
-				'queryName': 'relate-bobs', 
+				'queryName': 'relate-bobs',
+				'jobRequest': '', 
 				'nodes': [
 					{
 						'id': 157, 
@@ -589,3 +610,58 @@ class TestQueryResponseReader(TestCase):
 		assert response.result_summary['counters']['labels_added'] == 2
 		assert len(response.relationship) == 5
 		assert len(response.nodes) == 2
+
+	@classmethod
+	def test_node_pubsub_message(cls):
+		data = {
+			'header': {
+				'messageKind': 'queryResponse', 
+				'sender': 'test-messages', 
+				'seedId': 123, 
+				'previousEventId': 456
+			}, 
+			'body': {
+				'queryName': 'relate-bobs',
+				'jobRequest': '',
+				'nodes': [
+					{
+						'id': 157, 
+						'labels': ['Person'], 
+						'properties': {'name': 'Bob'}
+					}, 
+					{
+						'id': 158, 
+						'labels': ['Person'], 
+						'properties': {'name': 'Bob2'}
+					}
+				], 
+				'relationship': {}, 
+				'resultSummary': {
+					'database': 'neo4j', 
+					'query': "CREATE (p:Person {name:'Bob'}) RETURN p", 
+					'parameters': {}, 
+					'query_type': 'rw', 
+					'plan': None, 
+					'profile': None, 
+					'notifications': None, 
+					'counters': {
+						'labels_added': 1, 
+						'_contains_updates': True, 
+						'relationships_created': 0, 
+						'nodes_created': 1, 
+						'properties_set': 1
+					}, 
+					'result_available_after': 5, 
+					'result_consumed_after': 1
+				}
+			}
+		}
+		data_str = json.dumps(data)
+		data_utf8 = data_str.encode('utf-8')
+		event = {'data': base64.b64encode(data_utf8)}
+
+		response = trellis.QueryResponseReader(
+											   mock_context,
+											   event)
+		assert len(response.nodes) == 2
+		assert not response.relationship
