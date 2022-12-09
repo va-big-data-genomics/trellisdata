@@ -30,7 +30,7 @@ class DatabaseQuery(yaml.YAMLObject):
 				 publish_to,
 				 returns,
 				 required_parameters,
-				 job_request,
+				 job_request=None,
 				 active=True,
 				 aggregate_results=False):
 		self.name = name
