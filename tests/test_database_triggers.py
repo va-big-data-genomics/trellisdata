@@ -397,6 +397,40 @@ class TestDatabaseTriggerController(TestCase):
 		assert parameters == node_properties
 
 	@classmethod
+	def test_eval_node_trigger_no_label_matches(cls):
+		node_graph = Graph()
+		# Hydrate graph with node
+		node_properties = {"sample": "sample123", "uri": "gs://bucket/sample123.fastq"}
+		
+		graph_hydrator = Graph.Hydrator(node_graph)
+		graph_hydrator.hydrate_node(
+							n_id = 1,
+							n_labels = {"DoesNotMatchAnyTrigger"},
+							properties = node_properties)
+
+		write_response = trellis.QueryResponseWriter(
+			sender=cls.sender,
+			seed_id=cls.seed_id,
+			previous_event_id=cls.previous_event_id,
+			query_name="createFastq",
+			graph=node_graph,
+			result_summary=cls.result_summary)
+		message = write_response.return_json_with_all_nodes()
+		
+		data_str = json.dumps(message)
+		data_utf8 = data_str.encode('utf-8')
+		event = {'data': base64.b64encode(data_utf8)}
+
+		read_response = trellis.QueryResponseReader(
+													mock_context,
+													event)
+
+		controller = trellis.TriggerController(pilot_triggers)
+		triggers = controller.evaluate_trigger_conditions(read_response)
+
+		assert not triggers
+
+	@classmethod
 	def test_eval_rel_triggers_multi_label(cls):
 		pass
 	
@@ -475,21 +509,18 @@ class TestTriggerControllerLoadTriggers(TestCase):
 
 	@classmethod
 	def test_load_trigger_no_pattern(cls):
-
 		match_pattern = r"Trigger is missing an activation pattern."
 		with pytest.raises(AttributeError, match=match_pattern):
 			controller = trellis.TriggerController(no_pattern)
 
 	@classmethod
 	def test_load_trigger_bad_pattern(cls):
-
 		match_pattern = r"Trigger pattern '\w+' not in supported patterns:"
 		with pytest.raises(ValueError, match=match_pattern):
 			controller = trellis.TriggerController(bad_pattern)
 
 	@classmethod
 	def test_load_trigger_no_start_label(cls):
-
 		match_pattern = "Trigger start node missing label."
 		with pytest.raises(ValueError, match=match_pattern):
 			controller = trellis.TriggerController(no_start_label)
