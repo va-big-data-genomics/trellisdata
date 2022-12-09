@@ -30,6 +30,7 @@ class DatabaseQuery(yaml.YAMLObject):
 				 publish_to,
 				 returns,
 				 required_parameters,
+				 job_request,
 				 active=True,
 				 aggregate_results=False):
 		self.name = name
@@ -40,6 +41,7 @@ class DatabaseQuery(yaml.YAMLObject):
 		self.returns = returns
 		self.required_parameters = required_parameters
 		self.active = active
+		self.job_request = job_request
 
 	def __eq__(self, other):
 		# https://stackoverflow.com/questions/1227121/compare-object-instances-for-equality-by-their-attributes
@@ -55,4 +57,5 @@ class DatabaseQuery(yaml.YAMLObject):
 			   self.aggregate_results == other.aggregate_results and
 			   self.returns == other.returns and
 			   self.required_parameters == other.required_parameters and
-			   self.active == other.active)
+			   self.active == other.active and
+			   self.job_request == other.job_request)

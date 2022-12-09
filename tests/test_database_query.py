@@ -135,18 +135,42 @@ class TestDatabaseQuery(TestCase):
 			# Convert generator to list
 			queries = list(queries)
 
-		assert len(queries) == 8
+		assert len(queries) == 9
 
 		query = queries[0]
 
-		assert query.name
-		assert query.cypher
-		assert query.required_parameters
-		assert query.write_transaction
-		assert query.aggregate_results
-		assert query.publish_to
-		assert query.indexes
-		assert query.returns
+		assert hasattr(query, 'name')
+		assert hasattr(query, 'cypher')
+		assert hasattr(query, 'required_parameters')
+		assert hasattr(query, 'write_transaction')
+		assert hasattr(query, 'aggregate_results')
+		assert hasattr(query, 'publish_to')
+		assert hasattr(query, 'indexes')
+		assert hasattr(query, 'returns')
+
+	@classmethod
+	def test_load_job_query_from_file(cls):
+
+		query_dict = {}
+		with open("sample_inputs/pilot-db-queries.yaml", "r") as file_handle:
+			queries = yaml.load_all(file_handle, Loader=yaml.FullLoader)
+			# Convert generator to list
+			queries = list(queries)
+			for query in queries:
+				query_dict[query.name] = query
+
+		query_name = 'launchFastqToUbam'
+		query = query_dict[query_name]
+
+		assert query.name == 'launchFastqToUbam'
+		assert hasattr(query, 'cypher')
+		assert hasattr(query, 'required_parameters')
+		assert hasattr(query, 'write_transaction')
+		assert hasattr(query, 'aggregate_results')
+		assert hasattr(query, 'publish_to')
+		assert hasattr(query, 'indexes')
+		assert hasattr(query, 'returns')
+		assert query.job_request == 'fastq-to-ubam'
 
 	@classmethod
 	def test_create_custom_query_with_params(cls):
