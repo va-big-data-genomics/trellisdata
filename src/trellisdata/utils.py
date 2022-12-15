@@ -1,5 +1,7 @@
 import json
 import pytz
+import random
+import hashlib
 
 from anytree import Node, RenderTree
 from anytree.search import find
@@ -131,9 +133,24 @@ def _get_datetime_stamp():
     return datestamp
 
 def make_unique_task_id(nodes):
-    # Create pretty-unique hash value based on input nodes
-    # https://www.geeksforgeeks.org/ways-sort-list-dictionaries-values-python-using-lambda-function/
-    sorted_nodes = sorted(nodes, key = lambda i: i['id'])
+    """ Create pretty-unique hash value based on input node 
+        properties. Ignore labels and node Ids.
+        Inspiration for hashing algorithm: https://www.geeksforgeeks.org/ways-sort-list-dictionaries-values-python-using-lambda-function/
+
+        Args:
+            nodes (list): List of node dictionaries output from Neo4j Graph
+        
+        Returns:
+            task_id (str): Combination of datetime stamp and nodes hash.
+                Format: '{date}-{time}-{time}-{nodes hash}'
+                Example: '221214-162717-045-5d709493'
+            trunc_nodes_hash (str): Hash value created from 
+                combined properties of all nodes.
+    """
+    nodes_properties = []
+    for node in nodes:
+        nodes_properties.append(node['properties'])
+    sorted_nodes = sorted(nodes_properties, key = lambda i: i['id'])
     nodes_str = json.dumps(sorted_nodes, sort_keys=True, ensure_ascii=True, default=str)
     nodes_hash = hashlib.sha256(nodes_str.encode('utf-8')).hexdigest()
     print(nodes_hash)
