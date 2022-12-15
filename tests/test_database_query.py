@@ -45,6 +45,7 @@ returns:
     relationship: HAS_INDED
     end: Tbi
 active: true
+job_request: null
 """
 
 tbi_queries = """
@@ -68,6 +69,7 @@ returns:
     relationship: HAS_INDED
     end: Tbi
 active: true
+job_request: null
 --- !DatabaseQuery
 name: relateGenomeToFastq
 cypher: 'MATCH (fastq:Fastq)<-[]-(:PersonalisSequencing)<-[]-(s:Sample)<-[]-(:Person)-[]->(genome:Genome) WHERE s.sample = $sample AND NOT (g)-[:HAS_SEQUENCING_READS]->(f) MERGE (genome)-[rel:HAS_SEQUENCING_READS]->(fastq) RETURN genome, rel, fastq'
@@ -87,6 +89,7 @@ returns:
     relationship: HAS_SEQUENCING_READS
     end: Fastq
 active: true
+job_request: null
 """
 
 class TestDatabaseQuery(TestCase):
