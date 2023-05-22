@@ -13,6 +13,8 @@ from .messages import QueryResponseReader
 #from .messages import JobLauncherResponse
 
 from .operation_grapher import OperationGrapher
+
 from .job_launcher import JobLauncher
+from .job_launcher import JobRequest
 
 from trellisdata import utils
