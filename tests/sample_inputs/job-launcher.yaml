@@ -1,0 +1,116 @@
+--- !JobLauncher
+name: fastq-to-ubam
+dsub_prefix: fq2u
+inputs:
+  nodes:
+  relationship:
+    start: Fastq
+    type: HAS_MATE_PAIR
+    end: Fastq
+virtual_machine:
+  min_cores: 1
+  min_ram: 7.5
+  boot_disk_size: 20
+  disk_size: 500
+  image: broadinstitute/gatk:4.1.0.0
+dsub:
+  preemptible: False
+  inputs:
+      FASTQ_R1: 
+        template: "{uri}"
+        source: start
+      FASTQ_R2: 
+        template: "{uri}"
+        source: end
+  env_variables:
+      RG: 
+        template: "{readGroup}"
+        source: start
+        value_type: int
+      SM: 
+        template: "{sample}"
+        source: start
+      PL: 
+        value: "illumina"
+  outputs:
+      UBAM: 
+        template: "{plate}/{sample}/{sample}_{readGroup}.ubam"
+        source: start
+  command: "/gatk/gatk --java-options
+    \\'-Xmx8G -Djava.io.tmpdir=bla\\'
+    FastqToSam
+    -F1 ${FASTQ_R1}
+    -F2 ${FASTQ_R2}
+    -O ${UBAM}
+    -RG ${RG}
+    -SM ${SM}
+    -PL ${PL}"
+  labels:
+    read-group: 
+      template: "{readGroup}"
+      source: start
+    sample: 
+      template: "{sample}"
+      source: start
+    plate: 
+      template: "{plate}"
+      source: start
+
+--- !JobLauncher
+name: gatk-5-dollar
+dsub_prefix: gatk
+inputs:
+  nodes:
+    - Ubam
+  relationship:
+virtual_machine:
+  min_cores: 1
+  min_ram: 12
+  boot_disk_size: 20
+  disk_size: 100
+  image: broadinstitute/gatk:4.1.0.0
+dsub:
+  preemptible: False
+  inputs:
+      CFG: 
+        template: "gs://{trellis.TRELLIS_BUCKET}/{trellis.GATK_MVP_DIR}/{trellis.GATK_MVP_HASH}/{trellis.GATK_GERMLINE_DIR}/google-adc.conf"
+      OPTION: 
+        template: "gs://{trellis.OUT_BUCKET}/{nodes.papi_options_path}"
+      WDL:
+        template: "gs://{trellis.TRELLIS_BUCKET}/{trellis.GATK_MVP_DIR}/{trellis.GATK_MVP_HASH}/{trellis.GATK_GERMLINE_DIR}/fc_germline_single_sample_workflow.wdl"
+      SUBWDL:
+        template: "gs://{trellis.TRELLIS_BUCKET}/{trellis.GATK_MVP_DIR}/{trellis.GATK_MVP_HASH}/{trellis.GATK_GERMLINE_DIR}/tasks_pipelines/*.wdl"
+      INPUT: 
+        template: "gs://{trellis.OUT_BUCKET}/{trellis.gatk_inputs_path}"
+  env_variables:
+      PROJECT: 
+        template: "{readGroup}"
+        source: start
+        value_type: int
+      ROOT: 
+        template: "gs://{trellis.OUT_BUCKET}/{nodes.plate}/{nodes.sample}/{job.name}/{job.trellis_task_id}/output"
+      BACKEND_PROVIDER: 
+        value: "PAPIv2"
+  outputs:
+      UBAM: 
+        template: "{plate}/{sample}/{sample}_{readGroup}.ubam"
+        source: start
+  command: "/gatk/gatk --java-options
+    \\'-Xmx8G -Djava.io.tmpdir=bla\\'
+    FastqToSam
+    -F1 ${FASTQ_R1}
+    -F2 ${FASTQ_R2}
+    -O ${UBAM}
+    -RG ${RG}
+    -SM ${SM}
+    -PL ${PL}"
+  labels:
+    read-group: 
+      template: "{readGroup}"
+      source: start
+    sample: 
+      template: "{sample}"
+      source: start
+    plate: 
+      template: "{plate}"
+      source: start
