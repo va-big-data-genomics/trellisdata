@@ -1,12 +1,15 @@
 --- !JobLauncher
 name: fastq-to-ubam
 dsub_prefix: fq2u
-inputs:
-  nodes:
-  relationship:
-    start: Fastq
-    type: HAS_MATE_PAIR
-    end: Fastq
+sources:
+  -
+    name: fastqs
+    graph_status: relationship
+    cardinality: one
+    pattern: 
+      start: Fastq
+      rel: HAS_MATE_PAIR
+      end: Fastq
 virtual_machine:
   min_cores: 1
   min_ram: 7.5
@@ -17,25 +20,24 @@ dsub:
   preemptible: False
   inputs:
       FASTQ_R1: 
-        template: "{uri}"
-        source: start
+        template: "{fastqs['start']['uri']}"
+        value_type: str
       FASTQ_R2: 
-        template: "{uri}"
-        source: end
+        template: "{fastqs['end']['uri']}"
+        value_type: str
   env_variables:
       RG: 
-        template: "{readGroup}"
-        source: start
+        template: "{fastqs['start']['readGroup']}"
         value_type: int
       SM: 
-        template: "{sample}"
-        source: start
+        template: "{fastqs.start.sample}"
+        value_type: int
       PL: 
         value: "illumina"
   outputs:
       UBAM: 
-        template: "{plate}/{sample}/{sample}_{readGroup}.ubam"
-        source: start
+        template: "{fastqs['start']['plate']}/{fastqs['start']['sample']}/{fastqs['start']['sample']}_{fastqs['start']['readGroup']}.ubam"
+        value_type: str
   command: "/gatk/gatk --java-options
     \\'-Xmx8G -Djava.io.tmpdir=bla\\'
     FastqToSam
@@ -47,15 +49,14 @@ dsub:
     -PL ${PL}"
   labels:
     read-group: 
-      template: "{readGroup}"
-      source: start
+      template: "{fastqs['start']['readGroup']}"
+      value_type: str
     sample: 
-      template: "{sample}"
-      source: start
+      template: "{fastqs['start']['sample']}"
+      value_type: str
     plate: 
-      template: "{plate}"
-      source: start
-
+      template: "{fastqs['start']['plate']}"
+      value_type: str
 --- !JobLauncher
 name: gatk-5-dollar
 dsub_prefix: gatk
@@ -69,6 +70,20 @@ virtual_machine:
   boot_disk_size: 20
   disk_size: 100
   image: broadinstitute/gatk:4.1.0.0
+data_sources:
+  nodes:
+    -
+      name: ubam
+      label: Ubam
+      cardinality: multiple
+    -
+      name: fastq_r1
+      label: Fastq
+      cardinality: single
+    - 
+      name: fastq_r2
+      label: Fastq
+      cardinality: single
 dsub:
   preemptible: False
   inputs:
@@ -82,6 +97,9 @@ dsub:
         template: "gs://{trellis.TRELLIS_BUCKET}/{trellis.GATK_MVP_DIR}/{trellis.GATK_MVP_HASH}/{trellis.GATK_GERMLINE_DIR}/tasks_pipelines/*.wdl"
       INPUT: 
         template: "gs://{trellis.OUT_BUCKET}/{trellis.gatk_inputs_path}"
+      UBAM_PATHS:
+        template: "{nodes.path}"
+        expression: list_comprehension
   env_variables:
       PROJECT: 
         template: "{readGroup}"
@@ -91,10 +109,9 @@ dsub:
         template: "gs://{trellis.OUT_BUCKET}/{nodes.plate}/{nodes.sample}/{job.name}/{job.trellis_task_id}/output"
       BACKEND_PROVIDER: 
         value: "PAPIv2"
+      UBAM_PATHS:
+        template: "{end.path}"
   outputs:
-      UBAM: 
-        template: "{plate}/{sample}/{sample}_{readGroup}.ubam"
-        source: start
   command: "/gatk/gatk --java-options
     \\'-Xmx8G -Djava.io.tmpdir=bla\\'
     FastqToSam
