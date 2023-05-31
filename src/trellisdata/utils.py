@@ -131,7 +131,7 @@ def _get_datetime_stamp():
     now = datetime.now()
     datestamp = now.strftime("%y%m%d-%H%M%S-%f")[:-3]
     return datestamp
-
+    
 def make_unique_task_id(nodes):
     """ Create pretty-unique hash value based on input node 
         properties. Ignore labels and node Ids.
