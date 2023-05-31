@@ -1,0 +1,89 @@
+--- !JobLauncher
+name: fastq-to-ubam
+sources:
+  -
+    name: fastq_mate_pair
+    graph_status: relationship
+    cardinality: one
+    graph_pattern: 
+      start: Fastq
+      relationship: HAS_MATE_PAIR
+      end: Fastq
+--- !JobLauncher
+name: gatk-5-dollar
+sources:
+  -
+    name: ubams
+    graph_status: independent
+    cardinality: many
+    graph_pattern:
+      start: Ubam
+  -
+    name: sample
+    graph_status: independent
+    cardinality: one
+    graph_pattern:
+      start: Sample
+--- !JobLauncher
+name: view-signature-snps
+sources:
+  - 
+    name: vcf
+    graph_status: relationship
+    cardinality: one
+    pattern:
+      start: Vcf
+      relationship: HAS_INDEX
+      end: Tbi
+--- !JobLauncher
+name: bam-fastqc
+sources:
+  -
+    name: bam
+    graph_status: independent
+    cardinality: one
+    pattern:
+      start: Bam
+--- !JobLauncher
+name: flagstat
+sources:
+  -
+    name: bam
+    graph_status: independent
+    cardinality: one
+    pattern:
+      start: Bam
+--- !JobLauncher
+name: vcfstats
+sources:
+  -
+    name: vcf
+    graph_status: relationship
+    cardinality: one
+    pattern:
+      start: Vcf
+      rel: HAS_INDEX
+      end: Tbi
+--- !JobLauncher
+name: text-to-table
+sources:
+  -
+    name: quality_assessment
+    graph_status: independent
+    cardinality: one
+    pattern:
+      start: QualityAssessment
+--- !JobLauncher
+name: cnvnator
+sources:
+  -
+    name: cram
+    graph_status: independent
+    cardinality: one
+    pattern:
+      start: Cram
+  - name: sequencing
+    graph_status: independent
+    cardinality: one
+    pattern:
+      start: PersonalisSequencing
