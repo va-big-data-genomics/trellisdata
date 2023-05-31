@@ -15,7 +15,7 @@ class JobLauncher(yaml.YAMLObject):
 
 class JobRequest():
 
-	def __init__(task, project_id, provider, trellis_config, start_node, end_node, job_id, input_ids, trunc_nodes_hash):
+	def __init__(task):
 	    """ Create a dictionary with all the values required
 	        to launch a dsub job for this task. This dictionary will
 	        then be transformed into a dictionary with the actual
@@ -25,26 +25,32 @@ class JobRequest():
 
 
 	        Args:
-	            task (dict): Event payload.
-	            provider (str): Indicates which backend should be used by dsub. Reference: https://github.com/DataBiosphere/dsub/blob/main/docs/providers/README.md.
+	            task (dict): Task definition loaded from YAML
+	            trellis_config (disk): General Trellis configuration data loaded from YAML
 	            start_node (dict): Dictionary with node id, labels, & properties (neo4j.Graph.Node)
 	            end_node (dict): Dictionary with node id, labels, & properties (neo4j.Graph.Node)
-	            job_id (str):
-	            input_ids (list):
-	            trunc_nodes_hash (str): 8 character alphanumeric truncated hash value
 	        Returns:
 	            dictionary: Dsub job arguments
 	    """
+	    #self.job_sources = self._get_job_sources(task, query_response)
+	    
+	    self.task = task
 
-	    self.env_variables = _get_input_output_values(
+	    self.job_id, self.trunc_nodes_hash = self._make_unique_job_id()
+
+
+	    # Generate dsub arguments by mapping task configuration
+	    # variables to values defined in the JobRequest instance,
+	    # Trellis configuration, or input nodes.
+	    self.env_variables = self._get_input_output_values(
 	                         	argument_type = "env_variables")
-	    self.inputs = _get_input_output_values(
+	    self.inputs = self._get_input_output_values(
 	                			argument_type = "inputs")
-	    self.outputs = _get_input_output_values(
+	    self.outputs = self._get_input_output_values(
 	    						argument_type = "outputs")
-	    self.outputs = _get_input_output_values(
+	    self.outputs = self._get_input_output_values(
 	    						argument_type = "outputs_recursive")
-	    self.dsub_labels = _get_label_values()
+	    self.dsub_labels = self._get_label_values()
 
 	    # Use camelcase keys for this dict because it will be added to Neo4j
 	    # database where camelcase is the standard.
@@ -69,20 +75,44 @@ class JobRequest():
 	    self.preemptible = task.dsub['preemptible']
 	    self.command = task.dsub['command']
 
-	
+	def _make_unique_job_id():
+	    """ Create pretty-unique hash value based on input node 
+	        properties. Ignore labels and node Ids.
+	        Inspiration for hashing algorithm: https://www.geeksforgeeks.org/ways-sort-list-dictionaries-values-python-using-lambda-function/
+
+	        Args:
+	            nodes (list): List of node dictionaries output from Neo4j Graph
+	        
+	        Returns:
+	            task_id (str): Combination of datetime stamp and nodes hash.
+	                Format: '{date}-{time}-{time}-{nodes hash}'
+	                Example: '221214-162717-045-5d709493'
+	            trunc_nodes_hash (str): Hash value created from 
+	                combined properties of all nodes.
+	    """
+	    nodes_properties = []
+	    for node in self.nodes:
+	        nodes_properties.append(node['properties'])
+	    sorted_nodes = sorted(nodes_properties, key = lambda i: i['id'])
+	    nodes_str = json.dumps(sorted_nodes, sort_keys=True, ensure_ascii=True, default=str)
+	    nodes_hash = hashlib.sha256(nodes_str.encode('utf-8')).hexdigest()
+	    print(nodes_hash)
+	    trunc_nodes_hash = str(nodes_hash)[:8]
+	    datetime_stamp = _get_datetime_stamp()
+	    task_id = f"{datetime_stamp}-{trunc_nodes_hash}"
+	    return(task_id, trunc_nodes_hash)
+
 	def _get_input_output_values(self, argument_type):
 	    """ Parse job values from the input nodes. Mapping of 
 	        node properties to job values is defined in the
 	        task configuration document.
 
 	        Args:
-	            task (dict): Task template for creating jobs.
-	            start_node (dict): Dictionary with node id, labels, & properties (neo4j.Graph.Node)
-	            end_node (dict): Dictionary with node id, labels, & properties (neo4j.Graph.Node)
-	            params(dict): Template for generating input, output, and
-	                environment variables passed to dsub.
+	            argument_type (str): Indicate which kind of dsub argument is
+	            			being created: ['inputs', 'outputs', 
+	            			'env_variables', 'outputs_recursive'].
 	        Returns:
-	            dictionary: Dsub job arguments
+	            dictionary: Job arguments
 	    """
 	    # Used for transforming values from default type (str)
 	    supported_value_types = {
@@ -99,13 +129,6 @@ class JobRequest():
 	        raise ValueError(f"{argument_type} is not a supported type: {supported_argument_types}")
 	    
 	    task_fields = self.task.dsub[argument_type]
-	    
-	    sources = {
-	        "start": self.start.get('properties'),
-	        "end": self.end.get('properties'),
-	        "nodes": self.nodes[0].get('properties')
-	        "trellis": self.trellis_config
-	    }
 
 	    # Inputs must provide either a "value" field with
 	    # a static value or a "template" and "source" fields
@@ -114,11 +137,19 @@ class JobRequest():
 	    # Inspiration: https://stackoverflow.com/questions/54351740/how-can-i-use-f-string-with-a-variable-not-with-a-string-literal
 	    job_values = {}
 	    for key in task_fields:
+	    	# Values here represent static values provided by the user
 	        value = task_fields[key].get('value')
+	        # The alternative to a value is a variable reference that
+	        # the Trellis will dynamically fetch the value for, from
+	        # the Trellis configuration or provided nodes.
 	        if not value:
-	            source = task_fields[key]['source']
+	            # May 31: Source is now specified in the `template` field
+	            #source = task_fields[key]['source']
 	            template = task_fields[key]['template']
 	            value_type = task_fields[key].get('value_type')
+	            
+	            # May 31: Need to parse the source from the template 
+	            # and then get value.
 	            value = template.format(**sources[source])
 	            
 	            if value_type:
@@ -129,7 +160,7 @@ class JobRequest():
 	        job_values[key] = value
 	    return job_values
 
-	def create_dsub_job_args(self):
+	def _create_dsub_args(self, trellis_config):
 	    """ Convert the job description dictionary into a list
 	        of dsub supported arguments.
 
@@ -182,90 +213,72 @@ class JobRequest():
 
 	    return dsub_args
 
-class BadJobRequest():
-
-	def __init__(
-				 boot_disk_size = 100,
-				 disk_size = 100,
-				 inputs = {},
-				 inputs_recursive = {},
-				 trellis_job_id,
-				 inputs_hash,
-				 outputs = {},
-				 environment_vars = {},
-				 # Track trellis version. TODO: Should also track task config file version...
-				 git_commit_hash,
-				 image,
-				 input_ids,
-				 logging,
-				 machine_type,
-				 name,
-				 network,
-				 plate,
-				 project,
-				 provider,
-				 regions,
-				 sample,
-				 script,
-				 subnetwork,
-				 user ,
-				 zone):
-
-		self.boot_disk_size = boot_disk_size
-		self.disk_size = disk_size
-		self.inputs = inputs
-		self.inputs_recursive = inputs_recursive
-		self.trellis_job_id = trellis_job_id
-		self.inputs_hash = inputs_hash
-		self.outputs = outputs
-		self.environment_vars = environment_vars
-		self.git_commit_hash = git_commit_hash
-		self.image = image
-		self.input_ids = input_ids
-		self.logging = logging
-		self.machine_type = machine_type
-		self.name = name
-		self.network = network
-		self.plate = plate
-		self.project = project
-		self.provider = provider
-		self.regions = regions
-		self.sample = sample
-		self.script = script
-		self.subnetwork = subnetwork
-		self.user = user
-		self.zone = zone
-
-
-		self.input_hash = self._get_inputs_hash()
-		self.dsub_command = self.get_dsub_cmd()
+	def _get_job_inputs(self):
+	    # Generate dsub arguments by mapping task configuration
+	    # variables to values defined in the JobRequest instance,
+	    # Trellis configuration, or input nodes.
+	    self.env_variables = self._get_input_output_values(
+	                         	argument_type = "env_variables")
+	    self.inputs = self._get_input_output_values(
+	                			argument_type = "inputs")
+	    self.outputs = self._get_input_output_values(
+	    						argument_type = "outputs")
+	    self.outputs = self._get_input_output_values(
+	    						argument_type = "outputs_recursive")
+	    self.dsub_labels = self._get_label_values()
 		
-		# Must get Dsub job id before creating
-		self.dstat_command = None
+	def get_job_sources(self, query_response, trellis_config):
+		"""Map graph data provided in the query response to
+  		   job variable sources defined in the task configuration.
+		Arguments:
+			query_response (trellis.QueryResponse): Graph data
+				returned by the query associated with the job
+				trigger.
+			trellis_config (Dict): Trellis configuration data.
+		"""
 
-	def _get_dsub_command(self):
-		dsub_cmd_args = self.dsub_args.copy()
-    	dsub_cmd_args.insert(0, "dsub")
-    	for arg in dsub_cmd_args:
-        	dsub_cmd = " ".join(dsub_cmd_args)
-        return dsub_cmd
+		self.job_sources = {
+			"trellis" = trellis_config
+			"job" = self
+		}
+	    for source in self.task.sources:
+	        if source['graph-status'] == 'independent':
+	            # Look for the source in query_response.nodes
+	            # Find matching nodes by label
+	            nodes = []
+	            for node in query_response.nodes:
+	                if source['start'] in node.labels:
+	                    nodes.append(node)
+	            # Check whether cardinality matches
+	            if source['cardinality'] == 'one':
+	                if len(nodes) != 1:
+	                    return ValueError("Expected one node labelled {source['start']} but found {len(nodes)}.")        
+	                self.job_sources[source] = nodes[0]
+	            elif source['cardinality'] == 'many':
+	                self.job_sources[source] = nodes
+	            else:
+	                return ValueError("Cardinality '{source['cardinality']}' is not supported.")
+	        elif source['graph-status'] == 'relationship':
+	            # Look for the source in query_response.relationship(s?)
+	            # Find matching nodes by label
+	            # Find matching relationship by type
+	            relationships = []
+	            for relationship in query_response.relationships:
+	                if (source['start'] in relationship.nodes[0].labels 
+	                        and source['relationships'] == relationship.type
+	                        and source['end'] in relationships.nodes[1].labels):
+	                    relationships.append(relationship)
+	            # Check wheter cardinality matches
+	            if source['cardinality'] == 'one':
+	                if len(relationships) != 1:
+	                    return ValueError("Expected one relationship but found {len(relationships)}.")
+	                self.job_sources[source] = relationships[0]
+	            elif source['cardinality'] == 'many':
+	                self.job_sources[source] = relationships
+	            else:
+	                return ValueError("Cardinality '{source['cardinality']}' is not supported.")
 
-    def _get_dstat_command(self):
-    	if not self.dsub_job_id:
-    		raise AttributeError("Attribute 'dsub_job_id' has not been set.")
-        dstat_command = (
-            "dstat " +
-            f"--project {self.project} " +
-            f"--provider {self.provider} " +
-            f"--jobs '{self.dsub_job_id}' " +
-            f"--users '{self.user}' " +
-            "--full " +
-            "--format json " +
-            "--status '*'"
-        )
-        return dstat_command
-
-    def _get_inputs_hash(self):
-
-    def set_dsub_job_id(self, job_id)
-    	self.dsub_job_id = job_id
+	def configure_dsub_job(self):
+		self._get_job_inputs()
+		dsub_args = self.-create_dsub_args()
+		return dsub_args
