@@ -14,7 +14,7 @@ from .messages import QueryResponseReader
 
 from .operation_grapher import OperationGrapher
 
-from .job_launcher import JobLauncher
+from .job_launcher import TaskConfiguration
 from .job_launcher import JobRequest
 
 from trellisdata import utils
