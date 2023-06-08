@@ -1,0 +1,18 @@
+/*
+|----------------------------------------------------------
+| Trellis Configuration Object
+|----------------------------------------------------------
+|
+| Deploy logging sinks
+|
+*/
+
+# Dsub variables
+DSUB_REGIONS: ${var.region}
+DSUB_OUT_BUCKET: ${var.project}-from-personalis-phase3-data
+DSUB_LOG_BUCKET: ${var.project}-from-personalis-phase3-logs
+DSUB_OUT_ROOT: dsub
+DSUB_USER: trellis
+DSUB_PROVIDRE: google-v2
+DSUB_NETWORK: ${google_compute_network.trellis-vpc-network.name}
+DSUB_SUBNETWORK: ${google_compute_subnetwork.trellis-subnet.name}

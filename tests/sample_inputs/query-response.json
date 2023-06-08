@@ -1,0 +1,57 @@
+{
+	"header": {
+		"messageKind": "queryResponse", 
+		"sender": "test-messages", 
+		"seedId": 123, 
+		"previousEventId": 456
+	}, 
+	"body": {
+		"queryName": "relate-bobs",
+		"jobRequest": "", 
+		"nodes": [
+			{
+				"id": 157, 
+				"labels": ["Person"], 
+				"properties": {"name": "Bob"}
+			}, 
+			{
+				"id": 158, 
+				"labels": ["Person"], 
+				"properties": {"name": "Bob2"}
+			}
+		], 
+		"relationship": {
+			"id": 78, 
+			"start_node": {
+				"id": 157, 
+				"labels": ["Person"], 
+				"properties": {"name": "Bob"}
+			}, 
+			"end_node": {
+				"id": 158, 
+				"labels": ["Person"], 
+				"properties": {"name": "Bob2"}
+			}, 
+			"type": "KNOWS", 
+			"properties": {}
+		}, 
+		"resultSummary": {
+			"database": "neo4j", 
+			"query": "CREATE (p:Person {name:'Bob'})-[r:KNOWS]->(p2:Person {name:'Bob2'}) RETURN p, p2, r", 
+			"parameters": {}, 
+			"query_type": "rw", 
+			"plan": null, 
+			"profile": null, 
+			"notifications": null, 
+			"counters": {
+				"labels_added": 2, 
+				"_contains_updates": true, 
+				"relationships_created": 1, 
+				"nodes_created": 2, 
+				"properties_set": 2
+			}, 
+			"result_available_after": 5, 
+			"result_consumed_after": 1
+		}
+	}
+}
