@@ -8,6 +8,13 @@ import neo4j
 import base64
 import pytest
 
+from neo4j._codec.hydration.v2 import HydrationHandler
+from neo4j._codec.packstream import Structure
+
+#from ..v1.test_graph_hydration import TestGraphHydration as _TestGraphHydration
+
+from neo4j._codec.hydration.v1.hydration_handler import _GraphHydrator
+
 from neo4j.graph import (
 	Graph,
 	Node,
@@ -28,6 +35,26 @@ import trellisdata as trellis
 mock_context = mock.Mock()
 mock_context.event_id = '617187464135194'
 mock_context.timestamp = '2019-07-15T22:09:03.761Z'
+
+class TestTranslateGraphToJson(TestCase):
+
+	@classmethod
+	def test_initialize_graph(cls):
+		graph_hydrator = _GraphHydrator()
+		assert isinstance(graph_hydrator.graph, Graph)
+
+	@classmethod
+	def test_translate_node_to_json(cls):
+		#hydration_handler = HydrationHandler()
+		graph_hydrator = _GraphHydrator()
+
+		# Define node
+		result = graph_hydrator.hydrate_node(
+					_id = 123,
+					labels = ["Person"],
+					properties = {"name": "Alice"})
+
+		pdb.set_trace()
 
 class TestQueryRequestWriter(TestCase):
 

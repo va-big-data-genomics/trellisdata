@@ -1,0 +1,1 @@
+'{"nodes": [{"id_": 123, "element_id": "abc", "labels": ["Person"], "properties": {"name": "Alice"}}, {"id_": 124, "element_id": "abd", "labels": ["Person"], "properties": {"name": "Bob"}}], "relationships": [{"id_": 456, "n0_id": 123, "n1_id": 124, "type_": "KNOWS", "properties": {"since": 1999}, "element_id": "ghi", "n0_element_id": "abc", "n1_element_id": "abd"}]}'
