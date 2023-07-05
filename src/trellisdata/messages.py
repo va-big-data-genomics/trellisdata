@@ -2,6 +2,76 @@ import json
 import neo4j
 import base64
 
+import json
+from neo4j.graph import Graph
+
+class QueryResponseHandler():
+
+    #def __init__(self):
+    #    self.nodes = []
+
+    @staticmethod
+    def translate_graph_to_json(graph):
+        nodes = []
+        relationships = []
+
+        for node in graph.nodes:
+            node_dict = self._get_node_dict(node)
+            nodes.append(node_dict)
+
+        for rel in graph.relationships:
+            rel_dict = self._get_relationship_dict(rel)
+            relationships.append(rel_dict)
+        
+        # Create a dictionary representing the graph
+        graph_dict = {"nodes": nodes, "relationships": relationships}
+
+        # Convert the graph dictionary to JSON
+        graph_json = json.dumps(graph_dict)
+
+        return graph_json
+
+    def _get_node_dict(self, node):
+        """Convert neo4j.graph.Node object into a dictionary.
+
+        neo4j.graph.Node source: https://github.com/neo4j/neo4j-python-driver/blob/4.4/neo4j/graph/__init__.py
+
+        Args:
+            node (neo4j.graph.Node): Object with node metadata.
+
+        Returns:
+            node_dict (dict): Dictionary of metadata stored in the Node object.
+        """
+
+        node_dict = {
+            "id": node.id,
+            "labels": list(node.labels),
+            "properties": dict(node.items())
+
+        }
+        return node_dict
+
+    def _get_relationship_dict(self, relationship):
+        """Convert neo4j.graph.Relationship object into dictionary.
+
+        neo4j.graph.Relationship source: https://github.com/neo4j/neo4j-python-driver/blob/4.4/neo4j/graph/__init__.py
+
+        Args: 
+            relationship (neo4j.graph.Relationship): Object with relationship metadata.
+
+        Returns: 
+            relationship_dict (dict): Dictionary of metadata stored in Relationship object.
+        """
+
+        relationship_dict = {
+            "id": relationship.id,
+            "start_node": self._get_node_dict(relationship.start_node),
+            "end_node": self._get_node_dict(relationship.end_node),
+            "type": relationship.type,
+            "properties": dict(relationship.items())
+        }
+        return relationship_dict
+
 
 class MessageWriter(object):
 
