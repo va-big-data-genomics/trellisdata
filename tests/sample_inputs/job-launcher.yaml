@@ -1,4 +1,4 @@
---- !JobLauncher
+--- !TaskConfiguration
 name: fastq-to-ubam
 dsub_prefix: fq2u
 sources:
@@ -57,7 +57,7 @@ dsub:
     plate: 
       template: "{fastqs['start']['plate']}"
       value_type: str
---- !JobLauncher
+--- !TaskConfiguration
 name: gatk-5-dollar
 dsub_prefix: gatk
 inputs:
@@ -70,20 +70,19 @@ virtual_machine:
   boot_disk_size: 20
   disk_size: 100
   image: broadinstitute/gatk:4.1.0.0
-data_sources:
-  nodes:
-    -
-      name: ubam
-      label: Ubam
-      cardinality: multiple
-    -
-      name: fastq_r1
-      label: Fastq
-      cardinality: single
-    - 
-      name: fastq_r2
-      label: Fastq
-      cardinality: single
+sources:
+  -
+    name: ubams
+    graph_status: independent
+    cardinality: many
+    graph_pattern:
+      start: Ubam
+  -
+    name: sample
+    graph_status: independent
+    cardinality: one
+    graph_pattern:
+      start: Sample
 dsub:
   preemptible: False
   inputs:
